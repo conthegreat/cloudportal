@@ -1,0 +1,100 @@
+{
+  "organisation": "",
+  "dashboardTitle": "Cloud and Network Service Status",
+  "timeZone": "Europe/London",
+  "refreshMinutes": 5,
+  "maintenanceLookAheadDays": 30,
+  "recentlyResolvedHours": 24,
+  "mockData": false,
+  "providers": {
+    "azure": {
+      "enabled": true,
+      "allowedRegions": ["uksouth", "ukwest"],
+      "includeGlobal": true,
+      "statusPageUrl": "https://azure.status.microsoft/en-gb/status",
+      "feedUrl": "https://azure.status.microsoft/en-gb/status/feed/"
+    },
+    "gcp": {
+      "enabled": true,
+      "allowedRegions": ["europe-west2"],
+      "includeGlobal": true,
+      "statusPageUrl": "https://status.cloud.google.com/",
+      "feedUrl": "https://status.cloud.google.com/incidents.json"
+    },
+    "aws": {
+      "enabled": true,
+      "allowedRegions": ["eu-west-2"],
+      "includeGlobal": true,
+      "globalServices": [
+        "route53",
+        "cloudfront",
+        "iam",
+        "global-accelerator",
+        "organizations",
+        "signin",
+        "health",
+        "support",
+        "billing",
+        "account"
+      ],
+      "statusPageUrl": "https://health.aws.amazon.com/health/status",
+      "feedUrl": "https://status.aws.amazon.com/rss/all.rss"
+    },
+    "ciscoUmbrella": {
+      "enabled": true,
+      "allowedRegions": ["global", "europe", "eu", "emea"],
+      "includeGlobal": true,
+      "blockedRegions": [
+        "apac",
+        "asia",
+        "australia",
+        "japan",
+        "singapore",
+        "india",
+        "china",
+        "north-america",
+        "south-america",
+        "africa"
+      ],
+      "statusPageUrl": "https://status.umbrella.cisco.com/",
+      "feedUrl": "https://status.umbrella.cisco.com/api/v2/summary.json"
+    },
+    "cloudflare": {
+      "enabled": true,
+      "allowedLocations": ["LHR"],
+      "includeGlobal": true,
+      "blockedLocations": ["SIN", "NRT", "HKG", "SYD", "china", "singapore", "japan", "hong-kong", "australia", "india", "asia", "tokyo", "sydney"],
+      "globalServices": [
+        "Authoritative DNS",
+        "Recursive DNS",
+        "DNS",
+        "CDN/Cache",
+        "CDN Cache Purge",
+        "Network",
+        "Zero Trust",
+        "Access",
+        "WAF",
+        "API",
+        "Load Balancing",
+        "SSL for SaaS",
+        "Always Online",
+        "Argo Smart Routing",
+        "Spectrum",
+        "Magic Transit",
+        "Magic WAN",
+        "Workers"
+      ],
+      "statusPageUrl": "https://www.cloudflarestatus.com/",
+      "feedUrl": "https://www.cloudflarestatus.com/api/v2/summary.json"
+    },
+    "syntura": {
+      "enabled": true,
+      "allowedServices": [],
+      "allowedLocations": [],
+      "blockedLocations": [],
+      "includeWhenUnconfigured": true,
+      "statusPageUrl": "https://synturastatus.io/",
+      "feedUrl": "https://api.synturastatus.io/data"
+    }
+  }
+}

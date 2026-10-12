@@ -1,0 +1,537 @@
+{
+  "schemaVersion": 1,
+  "mock": true,
+  "mockNotice": "Mock data. These events are fictional and are for layout testing. They are not live provider incidents.",
+  "organisation": "",
+  "dashboardTitle": "Cloud and Network Service Status",
+  "timeZone": "Europe/London",
+  "generatedAt": "2026-10-12T09:49:40.673Z",
+  "refreshMinutes": 5,
+  "maintenanceLookAheadDays": 30,
+  "recentlyResolvedHours": 24,
+  "providers": {
+    "azure": {
+      "id": "azure",
+      "name": "Microsoft Azure",
+      "sourceLabel": "Mock data",
+      "statusPageUrl": "https://azure.status.microsoft/en-gb/status",
+      "lastSuccess": "2026-10-12T09:49:40.673Z",
+      "stale": false,
+      "error": null,
+      "hasCache": true,
+      "rawCount": 4,
+      "includedCount": 2,
+      "excludedCount": 2,
+      "exclusionReasons": {},
+      "warnings": []
+    },
+    "gcp": {
+      "id": "gcp",
+      "name": "Google Cloud Platform",
+      "sourceLabel": "Mock data",
+      "statusPageUrl": "https://status.cloud.google.com/",
+      "lastSuccess": "2026-10-12T03:49:40.673Z",
+      "stale": true,
+      "error": "GCP status feed timed out",
+      "hasCache": true,
+      "rawCount": 1,
+      "includedCount": 1,
+      "excludedCount": 0,
+      "exclusionReasons": {},
+      "warnings": []
+    },
+    "aws": {
+      "id": "aws",
+      "name": "Amazon Web Services",
+      "sourceLabel": "Mock data",
+      "statusPageUrl": "https://health.aws.amazon.com/health/status",
+      "lastSuccess": "2026-10-12T09:49:40.673Z",
+      "stale": false,
+      "error": null,
+      "hasCache": true,
+      "rawCount": 2,
+      "includedCount": 1,
+      "excludedCount": 1,
+      "exclusionReasons": {},
+      "warnings": []
+    },
+    "ciscoUmbrella": {
+      "id": "ciscoUmbrella",
+      "name": "Cisco Umbrella",
+      "sourceLabel": "Mock data",
+      "statusPageUrl": "https://status.umbrella.cisco.com/",
+      "lastSuccess": "2026-10-12T09:49:40.673Z",
+      "stale": false,
+      "error": null,
+      "hasCache": true,
+      "rawCount": 3,
+      "includedCount": 2,
+      "excludedCount": 1,
+      "exclusionReasons": {},
+      "warnings": []
+    },
+    "cloudflare": {
+      "id": "cloudflare",
+      "name": "Cloudflare",
+      "sourceLabel": "Mock data",
+      "statusPageUrl": "https://www.cloudflarestatus.com/",
+      "lastSuccess": "2026-10-12T09:49:40.673Z",
+      "stale": false,
+      "error": null,
+      "hasCache": true,
+      "rawCount": 2,
+      "includedCount": 1,
+      "excludedCount": 1,
+      "exclusionReasons": {},
+      "warnings": []
+    },
+    "syntura": {
+      "id": "syntura",
+      "name": "Syntura, formerly hSo",
+      "sourceLabel": "Mock data",
+      "statusPageUrl": "https://synturastatus.io/",
+      "lastSuccess": "2026-10-12T09:49:40.673Z",
+      "stale": false,
+      "error": null,
+      "hasCache": true,
+      "rawCount": 1,
+      "includedCount": 1,
+      "excludedCount": 0,
+      "exclusionReasons": {},
+      "warnings": []
+    },
+    "example-empty": {
+      "id": "example-empty",
+      "name": "Example feed (mock only)",
+      "sourceLabel": "Mock data",
+      "statusPageUrl": "",
+      "lastSuccess": null,
+      "stale": true,
+      "error": "Status feed unavailable and no cached data",
+      "hasCache": false,
+      "rawCount": 0,
+      "includedCount": 0,
+      "excludedCount": 0,
+      "exclusionReasons": {},
+      "warnings": []
+    }
+  },
+  "events": [
+    {
+      "id": "mock-azure-uksouth",
+      "provider": "Azure",
+      "sourceProvider": "azure",
+      "eventType": "incident",
+      "title": "MOCK: Storage latency in UK South",
+      "status": "investigating",
+      "severity": "degraded",
+      "affectedServices": [
+        "Storage"
+      ],
+      "affectedComponents": [],
+      "regions": [
+        "uksouth"
+      ],
+      "locations": [],
+      "isGlobal": false,
+      "startedAt": "2026-10-12T07:49:40.673Z",
+      "updatedAt": "2026-10-12T09:31:40.673Z",
+      "endedAt": null,
+      "scheduledFor": null,
+      "scheduledUntil": null,
+      "summary": "MOCK fictional event. A subset of storage transactions in UK South is slower than normal.",
+      "sourceUrl": "https://azure.status.microsoft/en-gb/status",
+      "included": true,
+      "inclusionReason": "Affected Azure region: UK South",
+      "matchedRegions": [
+        "uksouth"
+      ],
+      "matchedComponents": [],
+      "badges": [
+        "UK South"
+      ]
+    },
+    {
+      "id": "mock-azure-asia",
+      "provider": "Azure",
+      "sourceProvider": "azure",
+      "eventType": "incident",
+      "title": "MOCK: Compute outage in East Asia",
+      "status": "identified",
+      "severity": "major",
+      "affectedServices": [
+        "Virtual Machines"
+      ],
+      "affectedComponents": [],
+      "regions": [
+        "eastasia"
+      ],
+      "locations": [],
+      "isGlobal": false,
+      "startedAt": "2026-10-12T04:49:40.673Z",
+      "updatedAt": "2026-10-12T08:49:40.673Z",
+      "endedAt": null,
+      "scheduledFor": null,
+      "scheduledUntil": null,
+      "summary": "MOCK fictional event limited to East Asia.",
+      "sourceUrl": "https://azure.status.microsoft/en-gb/status",
+      "included": false,
+      "inclusionReason": "Limited to a region or location outside the allow-list",
+      "matchedRegions": [],
+      "matchedComponents": [],
+      "badges": []
+    },
+    {
+      "id": "mock-aws-london",
+      "provider": "Amazon Web Services",
+      "sourceProvider": "aws",
+      "eventType": "incident",
+      "title": "MOCK: Service disruption in Europe (London)",
+      "status": "identified",
+      "severity": "major",
+      "affectedServices": [
+        "ec2"
+      ],
+      "affectedComponents": [],
+      "regions": [
+        "eu-west-2"
+      ],
+      "locations": [],
+      "isGlobal": false,
+      "startedAt": "2026-10-12T08:49:40.673Z",
+      "updatedAt": "2026-10-12T09:37:40.673Z",
+      "endedAt": null,
+      "scheduledFor": null,
+      "scheduledUntil": null,
+      "summary": "MOCK fictional outage in eu-west-2.",
+      "sourceUrl": "https://health.aws.amazon.com/health/status",
+      "included": true,
+      "inclusionReason": "Affected AWS region: London (eu-west-2)",
+      "matchedRegions": [
+        "eu-west-2"
+      ],
+      "matchedComponents": [],
+      "badges": [
+        "London (eu-west-2)"
+      ]
+    },
+    {
+      "id": "mock-aws-us",
+      "provider": "Amazon Web Services",
+      "sourceProvider": "aws",
+      "eventType": "incident",
+      "title": "MOCK: Service disruption in US East",
+      "status": "investigating",
+      "severity": "major",
+      "affectedServices": [
+        "ec2"
+      ],
+      "affectedComponents": [],
+      "regions": [
+        "us-east-1"
+      ],
+      "locations": [],
+      "isGlobal": false,
+      "startedAt": "2026-10-12T06:49:40.673Z",
+      "updatedAt": "2026-10-12T07:49:40.673Z",
+      "endedAt": null,
+      "scheduledFor": null,
+      "scheduledUntil": null,
+      "summary": "MOCK fictional event limited to us-east-1.",
+      "sourceUrl": "https://health.aws.amazon.com/health/status",
+      "included": false,
+      "inclusionReason": "Limited to a region or location outside the allow-list",
+      "matchedRegions": [],
+      "matchedComponents": [],
+      "badges": []
+    },
+    {
+      "id": "mock-cisco-global",
+      "provider": "Cisco Umbrella",
+      "sourceProvider": "ciscoUmbrella",
+      "eventType": "incident",
+      "title": "MOCK: Umbrella Global DNS resolution errors",
+      "status": "investigating",
+      "severity": "partial",
+      "affectedServices": [
+        "DNS"
+      ],
+      "affectedComponents": [],
+      "regions": [],
+      "locations": [],
+      "isGlobal": true,
+      "startedAt": "2026-10-12T09:19:40.673Z",
+      "updatedAt": "2026-10-12T09:43:40.673Z",
+      "endedAt": null,
+      "scheduledFor": null,
+      "scheduledUntil": null,
+      "summary": "MOCK fictional global Umbrella DNS incident.",
+      "sourceUrl": "https://status.umbrella.cisco.com/",
+      "included": true,
+      "inclusionReason": "Explicitly global",
+      "matchedRegions": [],
+      "matchedComponents": [],
+      "badges": [
+        "Global"
+      ]
+    },
+    {
+      "id": "mock-cisco-eu-maint",
+      "provider": "Cisco Umbrella",
+      "sourceProvider": "ciscoUmbrella",
+      "eventType": "maintenance",
+      "title": "MOCK: Umbrella EU API maintenance",
+      "status": "scheduled",
+      "severity": "maintenance",
+      "affectedServices": [
+        "API"
+      ],
+      "affectedComponents": [],
+      "regions": [
+        "eu"
+      ],
+      "locations": [],
+      "isGlobal": false,
+      "startedAt": "2026-10-11T09:49:40.673Z",
+      "updatedAt": "2026-10-11T09:49:40.673Z",
+      "endedAt": null,
+      "scheduledFor": "2026-10-15T09:49:40.673Z",
+      "scheduledUntil": "2026-10-15T13:49:40.673Z",
+      "summary": "MOCK fictional planned maintenance for Umbrella EU.",
+      "sourceUrl": "https://status.umbrella.cisco.com/",
+      "included": true,
+      "inclusionReason": "Affected Cisco Umbrella scope: Europe",
+      "matchedRegions": [
+        "eu"
+      ],
+      "matchedComponents": [],
+      "badges": [
+        "Europe"
+      ]
+    },
+    {
+      "id": "mock-cisco-apac-maint",
+      "provider": "Cisco Umbrella",
+      "sourceProvider": "ciscoUmbrella",
+      "eventType": "maintenance",
+      "title": "MOCK: Umbrella APAC roaming-client maintenance",
+      "status": "scheduled",
+      "severity": "maintenance",
+      "affectedServices": [
+        "Roaming client"
+      ],
+      "affectedComponents": [],
+      "regions": [
+        "apac"
+      ],
+      "locations": [],
+      "isGlobal": false,
+      "startedAt": "2026-10-11T21:49:40.673Z",
+      "updatedAt": "2026-10-11T21:49:40.673Z",
+      "endedAt": null,
+      "scheduledFor": "2026-10-14T09:49:40.673Z",
+      "scheduledUntil": "2026-10-14T13:49:40.673Z",
+      "summary": "MOCK fictional maintenance limited to APAC.",
+      "sourceUrl": "https://status.umbrella.cisco.com/",
+      "included": false,
+      "inclusionReason": "Limited to a blocked region",
+      "matchedRegions": [],
+      "matchedComponents": [],
+      "badges": []
+    },
+    {
+      "id": "mock-cloudflare-lhr",
+      "provider": "Cloudflare",
+      "sourceProvider": "cloudflare",
+      "eventType": "maintenance",
+      "title": "MOCK: London (LHR) network maintenance",
+      "status": "in_progress",
+      "severity": "maintenance",
+      "affectedServices": [
+        "Network"
+      ],
+      "affectedComponents": [],
+      "regions": [],
+      "locations": [
+        "LHR"
+      ],
+      "isGlobal": false,
+      "startedAt": "2026-10-12T09:19:40.673Z",
+      "updatedAt": "2026-10-12T09:43:40.673Z",
+      "endedAt": null,
+      "scheduledFor": "2026-10-12T09:19:40.673Z",
+      "scheduledUntil": "2026-10-12T11:19:40.673Z",
+      "summary": "MOCK fictional maintenance in the London data centre.",
+      "sourceUrl": "https://www.cloudflarestatus.com/",
+      "included": true,
+      "inclusionReason": "Affected Cloudflare location: London LHR",
+      "matchedRegions": [
+        "LHR"
+      ],
+      "matchedComponents": [],
+      "badges": [
+        "London LHR"
+      ]
+    },
+    {
+      "id": "mock-cloudflare-sin",
+      "provider": "Cloudflare",
+      "sourceProvider": "cloudflare",
+      "eventType": "maintenance",
+      "title": "MOCK: Singapore (SIN) network maintenance",
+      "status": "scheduled",
+      "severity": "maintenance",
+      "affectedServices": [
+        "Network"
+      ],
+      "affectedComponents": [],
+      "regions": [],
+      "locations": [
+        "SIN"
+      ],
+      "isGlobal": false,
+      "startedAt": "2026-10-12T04:49:40.673Z",
+      "updatedAt": "2026-10-12T04:49:40.673Z",
+      "endedAt": null,
+      "scheduledFor": "2026-10-13T09:49:40.673Z",
+      "scheduledUntil": "2026-10-13T13:49:40.673Z",
+      "summary": "MOCK fictional maintenance limited to Singapore.",
+      "sourceUrl": "https://www.cloudflarestatus.com/",
+      "included": false,
+      "inclusionReason": "Limited to a blocked region",
+      "matchedRegions": [],
+      "matchedComponents": [],
+      "badges": []
+    },
+    {
+      "id": "mock-syntura-maint",
+      "provider": "Syntura, formerly hSo",
+      "sourceProvider": "syntura",
+      "eventType": "maintenance",
+      "title": "MOCK: Syntura core network planned works",
+      "status": "scheduled",
+      "severity": "maintenance",
+      "affectedServices": [
+        "Core Network"
+      ],
+      "affectedComponents": [],
+      "regions": [],
+      "locations": [
+        "THN"
+      ],
+      "isGlobal": false,
+      "startedAt": "2026-10-10T09:49:40.673Z",
+      "updatedAt": "2026-10-10T09:49:40.673Z",
+      "endedAt": null,
+      "scheduledFor": "2026-10-17T09:49:40.673Z",
+      "scheduledUntil": "2026-10-17T11:49:40.673Z",
+      "summary": "MOCK fictional Syntura planned maintenance. The service allow-list is still empty.",
+      "sourceUrl": "https://synturastatus.io/",
+      "included": true,
+      "inclusionReason": "Allow-lists are empty, so this event is included until services are configured",
+      "matchedRegions": [],
+      "matchedComponents": [],
+      "badges": [
+        "Allow-list not set"
+      ]
+    },
+    {
+      "id": "mock-gcp-cached",
+      "provider": "Google Cloud Platform",
+      "sourceProvider": "gcp",
+      "eventType": "incident",
+      "title": "MOCK: Cached Compute Engine degradation in europe-west2",
+      "status": "monitoring",
+      "severity": "degraded",
+      "affectedServices": [
+        "Compute Engine"
+      ],
+      "affectedComponents": [],
+      "regions": [
+        "europe-west2"
+      ],
+      "locations": [],
+      "isGlobal": false,
+      "startedAt": "2026-10-12T05:49:40.673Z",
+      "updatedAt": "2026-10-12T06:49:40.673Z",
+      "endedAt": null,
+      "scheduledFor": null,
+      "scheduledUntil": null,
+      "summary": "MOCK fictional cached incident retained after the Google Cloud feed failed.",
+      "sourceUrl": "https://status.cloud.google.com/",
+      "included": true,
+      "inclusionReason": "Affected Google Cloud region: London (europe-west2)",
+      "matchedRegions": [
+        "europe-west2"
+      ],
+      "matchedComponents": [],
+      "badges": [
+        "London (europe-west2)"
+      ]
+    },
+    {
+      "id": "mock-resolved-recent",
+      "provider": "Azure",
+      "sourceProvider": "azure",
+      "eventType": "incident",
+      "title": "MOCK: Resolved UK West packet loss",
+      "status": "resolved",
+      "severity": "degraded",
+      "affectedServices": [
+        "Virtual Network"
+      ],
+      "affectedComponents": [],
+      "regions": [
+        "ukwest"
+      ],
+      "locations": [],
+      "isGlobal": false,
+      "startedAt": "2026-10-12T01:49:40.673Z",
+      "updatedAt": "2026-10-12T06:49:40.673Z",
+      "endedAt": "2026-10-12T06:49:40.673Z",
+      "scheduledFor": null,
+      "scheduledUntil": null,
+      "summary": "MOCK fictional incident resolved within the retention window.",
+      "sourceUrl": "https://azure.status.microsoft/en-gb/status",
+      "included": true,
+      "inclusionReason": "Affected Azure region: UK West",
+      "matchedRegions": [
+        "ukwest"
+      ],
+      "matchedComponents": [],
+      "badges": [
+        "UK West"
+      ]
+    },
+    {
+      "id": "mock-resolved-old",
+      "provider": "Azure",
+      "sourceProvider": "azure",
+      "eventType": "incident",
+      "title": "MOCK: Old resolved UK South incident",
+      "status": "resolved",
+      "severity": "major",
+      "affectedServices": [
+        "App Service"
+      ],
+      "affectedComponents": [],
+      "regions": [
+        "uksouth"
+      ],
+      "locations": [],
+      "isGlobal": false,
+      "startedAt": "2026-10-08T09:49:40.673Z",
+      "updatedAt": "2026-10-09T09:49:40.673Z",
+      "endedAt": "2026-10-09T09:49:40.673Z",
+      "scheduledFor": null,
+      "scheduledUntil": null,
+      "summary": "MOCK fictional incident resolved outside the retention window.",
+      "sourceUrl": "https://azure.status.microsoft/en-gb/status",
+      "included": false,
+      "inclusionReason": "Resolved outside the 24 hour retention window",
+      "matchedRegions": [],
+      "matchedComponents": [],
+      "badges": []
+    }
+  ]
+}

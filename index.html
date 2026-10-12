@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cloud and Network Service Status</title>
+  <meta name="description" content="Current incidents, degradation and planned maintenance for the configured cloud and network services.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="wrap header-layout">
+      <div>
+        <h1 id="dashboard-title">Cloud and Network Service Status</h1>
+        <p class="lede">Incidents and maintenance filtered to the configured cloud and network services.</p>
+      </div>
+      <div class="header-status" id="overall" aria-live="polite"></div>
+    </div>
+    <div class="wrap header-tools">
+      <p id="updated">Last material update: loading</p>
+      <p id="schedule">Collection schedule: every 5 minutes. Unchanged data is not republished.</p>
+      <div class="tool-row">
+        <button type="button" id="reload" class="button">Reload status data</button>
+        <div class="segment" role="group" aria-label="Data source">
+          <button type="button" id="show-live" class="button button-quiet" aria-pressed="true">Live feed</button>
+          <button type="button" id="show-mock" class="button button-quiet" aria-pressed="false">Preview mock scenarios</button>
+        </div>
+      </div>
+    </div>
+  </header>
+  <main id="main" class="wrap">
+    <p id="loading">Loading service status…</p>
+    <div id="banners"></div>
+    <section aria-labelledby="providers-heading">
+      <h2 id="providers-heading">Providers</h2>
+      <div id="provider-cards" class="provider-grid"></div>
+    </section>
+    <section aria-labelledby="incidents-heading">
+      <h2 id="incidents-heading">Current incidents</h2>
+      <div id="incidents" class="event-list"></div>
+    </section>
+    <section aria-labelledby="maintenance-heading">
+      <h2 id="maintenance-heading">Current and upcoming maintenance</h2>
+      <p class="section-note">Upcoming and in-progress work is listed first. Completed work from the retention window follows.</p>
+      <div id="maintenance" class="event-list"></div>
+    </section>
+    <section aria-labelledby="resolved-heading">
+      <h2 id="resolved-heading">Resolved in the last 24 hours</h2>
+      <div id="resolved" class="event-list"></div>
+    </section>
+    <section aria-labelledby="filter-heading">
+      <h2 id="filter-heading">Filtering decisions</h2>
+      <details id="filter-log">
+        <summary>Excluded events</summary>
+      </details>
+    </section>
+  </main>
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>Times are shown in Europe/London (GMT or BST). Public provider feeds are not personalised to a subscription unless an authenticated source is configured on the collection job.</p>
+    </div>
+  </footer>
+  <div id="live" class="visually-hidden" aria-live="polite"></div>
+  <noscript>
+    <p>This dashboard needs JavaScript to read the status file. You can still open the provider status pages: <a href="https://azure.status.microsoft/en-gb/status">Azure</a>, <a href="https://status.cloud.google.com/">Google Cloud</a>, <a href="https://health.aws.amazon.com/health/status">AWS</a>, <a href="https://status.umbrella.cisco.com/">Cisco Umbrella</a>, <a href="https://www.cloudflarestatus.com/">Cloudflare</a> and <a href="https://synturastatus.io/">Syntura</a>.</p>
+  </noscript>
+  <script type="module" src="assets/app.js"></script>
+</body>
+</html>

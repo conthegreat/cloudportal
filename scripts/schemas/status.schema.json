@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Service status snapshot",
+  "type": "object",
+  "required": ["schemaVersion", "generatedAt", "providers", "events"],
+  "properties": {
+    "schemaVersion": { "type": "integer" },
+    "mock": { "type": "boolean" },
+    "mockNotice": { "type": ["string", "null"] },
+    "organisation": { "type": "string" },
+    "dashboardTitle": { "type": "string" },
+    "timeZone": { "type": "string" },
+    "generatedAt": { "type": "string" },
+    "refreshMinutes": { "type": "number" },
+    "maintenanceLookAheadDays": { "type": "number" },
+    "recentlyResolvedHours": { "type": "number" },
+    "providers": { "type": "object" },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "provider", "eventType", "title", "status", "severity", "included", "inclusionReason", "sourceProvider"],
+        "properties": {
+          "id": { "type": "string" },
+          "provider": { "type": "string" },
+          "sourceProvider": { "type": "string" },
+          "eventType": { "enum": ["incident", "maintenance"] },
+          "title": { "type": "string" },
+          "status": { "type": "string" },
+          "severity": { "type": "string" },
+          "affectedServices": { "type": "array", "items": { "type": "string" } },
+          "affectedComponents": { "type": "array", "items": { "type": "string" } },
+          "regions": { "type": "array", "items": { "type": "string" } },
+          "locations": { "type": "array", "items": { "type": "string" } },
+          "isGlobal": { "type": "boolean" },
+          "startedAt": { "type": ["string", "null"] },
+          "updatedAt": { "type": ["string", "null"] },
+          "endedAt": { "type": ["string", "null"] },
+          "scheduledFor": { "type": ["string", "null"] },
+          "scheduledUntil": { "type": ["string", "null"] },
+          "summary": { "type": "string" },
+          "sourceUrl": { "type": "string" },
+          "included": { "type": "boolean" },
+          "inclusionReason": { "type": "string" },
+          "matchedRegions": { "type": "array", "items": { "type": "string" } },
+          "matchedComponents": { "type": "array", "items": { "type": "string" } },
+          "badges": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  }
+}
