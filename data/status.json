@@ -5,7 +5,7 @@
   "organisation": "",
   "dashboardTitle": "Cloud and Network Service Status",
   "timeZone": "Europe/London",
-  "generatedAt": "2026-10-12T09:53:36.467Z",
+  "generatedAt": "2026-10-12T10:46:44.790Z",
   "refreshMinutes": 5,
   "maintenanceLookAheadDays": 30,
   "recentlyResolvedHours": 24,
@@ -15,7 +15,7 @@
       "name": "Microsoft Azure",
       "sourceLabel": "Public Azure Status",
       "statusPageUrl": "https://azure.status.microsoft/en-gb/status",
-      "lastSuccess": "2026-10-12T09:53:36.467Z",
+      "lastSuccess": "2026-10-12T10:46:44.790Z",
       "stale": false,
       "error": null,
       "hasCache": true,
@@ -30,7 +30,7 @@
       "name": "Google Cloud Platform",
       "sourceLabel": "Public Google Cloud Status",
       "statusPageUrl": "https://status.cloud.google.com/",
-      "lastSuccess": "2026-10-12T09:53:36.467Z",
+      "lastSuccess": "2026-10-12T10:46:44.790Z",
       "stale": false,
       "error": null,
       "hasCache": true,
@@ -47,7 +47,7 @@
       "name": "Amazon Web Services",
       "sourceLabel": "Public AWS Health",
       "statusPageUrl": "https://health.aws.amazon.com/health/status",
-      "lastSuccess": "2026-10-12T09:53:36.467Z",
+      "lastSuccess": "2026-10-12T10:46:44.790Z",
       "stale": false,
       "error": null,
       "hasCache": true,
@@ -65,7 +65,7 @@
       "name": "Cisco Umbrella",
       "sourceLabel": "Cisco Umbrella status",
       "statusPageUrl": "https://status.umbrella.cisco.com/",
-      "lastSuccess": "2026-10-12T09:53:36.467Z",
+      "lastSuccess": "2026-10-12T10:46:44.790Z",
       "stale": false,
       "error": null,
       "hasCache": true,
@@ -82,15 +82,15 @@
       "name": "Cloudflare",
       "sourceLabel": "Cloudflare Status API",
       "statusPageUrl": "https://www.cloudflarestatus.com/",
-      "lastSuccess": "2026-10-12T09:53:36.467Z",
+      "lastSuccess": "2026-10-12T10:46:44.790Z",
       "stale": false,
       "error": null,
       "hasCache": true,
-      "rawCount": 79,
+      "rawCount": 78,
       "includedCount": 4,
-      "excludedCount": 75,
+      "excludedCount": 74,
       "exclusionReasons": {
-        "Limited to a region or location outside the allow-list": 20,
+        "Limited to a region or location outside the allow-list": 19,
         "Limited to a blocked region": 8,
         "Resolved outside the 24 hour retention window": 47
       },
@@ -101,7 +101,7 @@
       "name": "Syntura, formerly hSo",
       "sourceLabel": "Syntura status",
       "statusPageUrl": "https://synturastatus.io/",
-      "lastSuccess": "2026-10-12T09:53:36.467Z",
+      "lastSuccess": "2026-10-12T10:46:44.790Z",
       "stale": false,
       "error": null,
       "hasCache": true,
@@ -3432,6 +3432,40 @@
       "badges": []
     },
     {
+      "id": "cloudflare-4ykw9rlkngzz",
+      "provider": "Cloudflare",
+      "sourceProvider": "cloudflare",
+      "eventType": "maintenance",
+      "title": "AMS (Amsterdam) on 2026-10-13",
+      "status": "scheduled",
+      "severity": "maintenance",
+      "affectedServices": [
+        "Amsterdam, Netherlands - (AMS)"
+      ],
+      "affectedComponents": [
+        "Amsterdam, Netherlands - (AMS)"
+      ],
+      "regions": [
+        "europe"
+      ],
+      "locations": [
+        "AMS"
+      ],
+      "isGlobal": false,
+      "startedAt": "2026-10-12T10:30:19.000Z",
+      "updatedAt": "2026-10-12T10:30:19.000Z",
+      "endedAt": null,
+      "scheduledFor": "2026-10-13T00:00:00.000Z",
+      "scheduledUntil": "2026-10-13T06:00:00.000Z",
+      "summary": "We will be performing scheduled maintenance in AMS (Amsterdam) datacenter on 2026-10-13 between 00:00 and 06:00 UTC. Traffic might be re-routed from this location, hence there is a possibility of a slight increase in latency during this maintenance window for end-users in the affected region. For PNI / CNI customers connecting with us in this location, please make sure you are expecting this traffic to fail over elsewhere during this maintenance window as network interfaces in this datacentre may become temporarily unavailable. You can now subscribe to these notifications via Cloudflare dashboard and receive these updates directly via email, PagerDuty and webhooks (based on your plan): https",
+      "sourceUrl": "https://www.cloudflarestatus.com/incidents/4ykw9rlkngzz",
+      "included": false,
+      "inclusionReason": "Limited to a region or location outside the allow-list",
+      "matchedRegions": [],
+      "matchedComponents": [],
+      "badges": []
+    },
+    {
       "id": "cloudflare-5wxp0tf1tkwc",
       "provider": "Cloudflare",
       "sourceProvider": "cloudflare",
@@ -3674,40 +3708,6 @@
       "badges": []
     },
     {
-      "id": "cloudflare-8l5brrctbs9l",
-      "provider": "Cloudflare",
-      "sourceProvider": "cloudflare",
-      "eventType": "maintenance",
-      "title": "CGY (Cagayan de Oro) on 2026-10-21",
-      "status": "scheduled",
-      "severity": "maintenance",
-      "affectedServices": [
-        "Cagayan de Oro, Philippines - (CGY)"
-      ],
-      "affectedComponents": [
-        "Cagayan de Oro, Philippines - (CGY)"
-      ],
-      "regions": [
-        "asia"
-      ],
-      "locations": [
-        "CGY"
-      ],
-      "isGlobal": false,
-      "startedAt": "2026-10-08T14:50:56.000Z",
-      "updatedAt": "2026-10-08T14:50:56.000Z",
-      "endedAt": null,
-      "scheduledFor": "2026-10-21T18:00:00.000Z",
-      "scheduledUntil": "2026-10-21T22:00:00.000Z",
-      "summary": "We will be performing scheduled maintenance in CGY (Cagayan de Oro) datacenter on 2026-10-21 between 18:00 and 22:00 UTC. Traffic might be re-routed from this location, hence there is a possibility of a slight increase in latency during this maintenance window for end-users in the affected region. For PNI / CNI customers connecting with us in this location, please make sure you are expecting this traffic to fail over elsewhere during this maintenance window as network interfaces in this datacentre may become temporarily unavailable. You can now subscribe to these notifications via Cloudflare dashboard and receive these updates directly via email, PagerDuty and webhooks (based on your plan):",
-      "sourceUrl": "https://www.cloudflarestatus.com/incidents/8l5brrctbs9l",
-      "included": false,
-      "inclusionReason": "Limited to a region or location outside the allow-list",
-      "matchedRegions": [],
-      "matchedComponents": [],
-      "badges": []
-    },
-    {
       "id": "cloudflare-8wmvkv5jkf15",
       "provider": "Cloudflare",
       "sourceProvider": "cloudflare",
@@ -3859,40 +3859,6 @@
       "sourceUrl": "https://www.cloudflarestatus.com/incidents/adw7e1heupa2",
       "included": false,
       "inclusionReason": "Resolved outside the 24 hour retention window",
-      "matchedRegions": [],
-      "matchedComponents": [],
-      "badges": []
-    },
-    {
-      "id": "cloudflare-bdxxkhx5k7hx",
-      "provider": "Cloudflare",
-      "sourceProvider": "cloudflare",
-      "eventType": "maintenance",
-      "title": "KUL (Kuala Lumpur) on 2026-10-21",
-      "status": "scheduled",
-      "severity": "maintenance",
-      "affectedServices": [
-        "Kuala Lumpur, Malaysia - (KUL)"
-      ],
-      "affectedComponents": [
-        "Kuala Lumpur, Malaysia - (KUL)"
-      ],
-      "regions": [
-        "asia"
-      ],
-      "locations": [
-        "KUL"
-      ],
-      "isGlobal": false,
-      "startedAt": "2026-10-08T14:50:57.000Z",
-      "updatedAt": "2026-10-08T14:50:58.000Z",
-      "endedAt": null,
-      "scheduledFor": "2026-10-21T18:00:00.000Z",
-      "scheduledUntil": "2026-10-21T22:00:00.000Z",
-      "summary": "We will be performing scheduled maintenance in KUL (Kuala Lumpur) datacenter on 2026-10-21 between 18:00 and 22:00 UTC. Traffic might be re-routed from this location, hence there is a possibility of a slight increase in latency during this maintenance window for end-users in the affected region. For PNI / CNI customers connecting with us in this location, please make sure you are expecting this traffic to fail over elsewhere during this maintenance window as network interfaces in this datacentre may become temporarily unavailable. You can now subscribe to these notifications via Cloudflare dashboard and receive these updates directly via email, PagerDuty and webhooks (based on your plan): ht",
-      "sourceUrl": "https://www.cloudflarestatus.com/incidents/bdxxkhx5k7hx",
-      "included": false,
-      "inclusionReason": "Limited to a region or location outside the allow-list",
       "matchedRegions": [],
       "matchedComponents": [],
       "badges": []

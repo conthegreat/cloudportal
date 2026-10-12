@@ -124,14 +124,11 @@ An event is included when a structured region or component matches an allowed va
 
 ### Scheduled collection
 
-`.github/workflows/update-status.yml`
+`.github/workflows/deploy-without-commit.yml` is the live publisher. It runs on `workflow_dispatch` and on cron `*/5 * * * *`. Five minutes is the shortest interval GitHub documents. GitHub can start a scheduled run later than the cron time, and may pause schedules after 60 days without a repository commit.
 
-- Runs on `workflow_dispatch` and on cron `*/5 * * * *`. Five minutes is the shortest interval GitHub documents. GitHub can start a scheduled run later than the cron time, and may pause schedules after 60 days without a repository commit.
-- `concurrency` group `update-status-data` with `cancel-in-progress: false`, so a slow run is not cancelled by the next one and a second run waits.
-- Permission is `contents: write` only.
-- Each provider is fetched on its own. One failure keeps that provider’s previous events, marks the provider stale, and lets the others update. A provider with no earlier success is unknown and contributes no events.
-- Writes `data/status.json` only when the events or provider errors change. `generatedAt` and `lastSuccess` alone do not cause a commit. The page calls the timestamp **Last material update** for that reason.
-- The commit identity is `github-actions[bot]`. The workflow does not print secrets. Logs list each provider, raw count, included count, excluded count, exclusion reasons, and retrieval failures.
+The job fetches every provider and deploys the site. It does not commit `data/status.json`. It passes `--publish`, so the live snapshot gets a new collection time even when the incidents have not changed. Reload on the page reads that published file. The page also checks for a newer file about once a minute.
+
+`.github/workflows/update-status.yml` is manual. Run it when the copy of `data/status.json` in the repository should be updated. It commits only when the events or provider errors change, so a timestamp by itself does not create a commit. Permission is `contents: write`. One failed provider keeps that provider’s previous events, marks it stale, and lets the others update. The commit identity is `github-actions[bot]`. The workflow does not print secrets.
 
 ### GitHub Pages
 
@@ -145,11 +142,7 @@ An event is included when a structured region or component matches an allowed va
 
 The first Pages run needs the `github-pages` environment. GitHub creates it when the deploy workflow runs. No extra hosting service is required.
 
-### Deploy without committing status data
-
-`.github/workflows/deploy-without-commit.yml` fetches provider data in the job and uploads the site to Pages. It does not commit `data/status.json`. It is manual only.
-
-To make that the scheduled publisher, disable **Update status data** and **Deploy GitHub Pages** in the Actions tab, then uncomment the `schedule` block in `deploy-without-commit.yml`. Leave only one of the two collectors on a schedule. Running both will collect the same feeds twice.
+`deploy-pages.yml` publishes code pushes. It does not fetch provider data. Leave **Refresh published status** as the only scheduled collector so the feeds are not requested twice.
 
 ## Repository secrets
 

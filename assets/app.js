@@ -38,6 +38,7 @@ const els = {
   filter: document.querySelector('#filter-log'),
   live: document.querySelector('#live'),
   reload: document.querySelector('#reload'),
+  checked: document.querySelector('#checked'),
   liveButton: document.querySelector('#show-live'),
   mockButton: document.querySelector('#show-mock'),
   loading: document.querySelector('#loading')
@@ -205,9 +206,13 @@ function render(status) {
     chip(overall),
     h('p', { class: 'meta', text: 'Calculated from events in scope only.' })
   );
-  els.updated.textContent = `Last material update: ${formatLondon(status.generatedAt, zone)}`;
+  const collectedAge = formatAge(status.generatedAt);
+  els.updated.textContent = `Provider data collected: ${formatLondon(status.generatedAt, zone)} (${collectedAge})`;
+  if (els.checked && state.checkedAt) {
+    els.checked.textContent = `This page checked the snapshot: ${formatLondon(state.checkedAt, zone)} (${formatAge(state.checkedAt)})`;
+  }
   const minutes = status.refreshMinutes || 5;
-  els.schedule.textContent = `Collection schedule: every ${minutes} minutes. Unchanged data is not republished. GitHub may delay a scheduled run.`;
+  els.schedule.textContent = `A new snapshot is published about every ${minutes} minutes. GitHub may start a scheduled run later. Reload reads the latest published snapshot.`;
   clear(els.banners);
   if (status.mock) {
     els.banners.append(h('p', { class: 'banner banner-mock', role: 'status', text: status.mockNotice || 'Mock data. These events are fictional.' }));
@@ -250,18 +255,25 @@ function render(status) {
   if (els.loading) els.loading.hidden = true;
 }
 
-async function load() {
-  els.reload.disabled = true;
+async function load(manual = false) {
+  if (manual) els.reload.disabled = true;
   const file = state.mode === 'mock' ? 'data/mock-status.json' : 'data/status.json';
+  const previousCollected = state.status?.generatedAt || '';
   try {
     const response = await fetch(`${file}?t=${Date.now()}`, { cache: 'no-store' });
     if (!response.ok) throw new Error(`Status file returned HTTP ${response.status}`);
     const status = await response.json();
     if (!status || !Array.isArray(status.events) || !status.providers) throw new Error('Status file has an unexpected shape');
     state.status = status;
+    state.checkedAt = new Date().toISOString();
     render(status);
     const overall = els.overall.querySelector('.chip')?.textContent || 'Unknown';
-    els.live.textContent = `${state.mode === 'mock' ? 'Mock scenarios' : 'Live feed'} loaded. Overall status is ${overall}.`;
+    const collected = formatAge(status.generatedAt);
+    if (manual) {
+      els.live.textContent = `Reloaded the published snapshot. Provider data was collected ${collected}. Overall status is ${overall}.`;
+    } else if (previousCollected && previousCollected !== status.generatedAt) {
+      els.live.textContent = `A newer snapshot was published. Provider data was collected ${collected}. Overall status is ${overall}.`;
+    }
   } catch (error) {
     clear(els.banners);
     els.banners.append(h('p', { class: 'banner banner-error', role: 'alert', text: 'The status file could not be read. Provider state is unknown.' }));
@@ -280,7 +292,8 @@ function setMode(mode) {
   load();
 }
 
-els.reload.addEventListener('click', load);
+els.reload.addEventListener('click', () => load(true));
+window.setInterval(() => load(false), 60000);
 els.liveButton.addEventListener('click', () => setMode('live'));
 els.mockButton.addEventListener('click', () => setMode('mock'));
 

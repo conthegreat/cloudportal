@@ -164,12 +164,15 @@ async function main() {
   }
   const next = await collect(config);
   const previous = readJson(statusPath);
-  if (previous && stableStringify(materialView(previous)) === stableStringify(materialView(next))) {
+  const unchanged = previous && stableStringify(materialView(previous)) === stableStringify(materialView(next));
+  if (unchanged && !args.has('--publish')) {
     console.log('No material change. data/status.json was left unchanged.');
     return;
   }
   writeJson(statusPath, next);
-  console.log(`Wrote ${path.relative(root, statusPath)}`);
+  console.log(unchanged
+    ? `Published a fresh collection time to ${path.relative(root, statusPath)}.`
+    : `Wrote ${path.relative(root, statusPath)}`);
 }
 
 main().catch((error) => {

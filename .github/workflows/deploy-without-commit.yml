@@ -1,14 +1,14 @@
-name: Deploy Pages without committing data
+name: Refresh published status
 
-# Alternative to update-status.yml. This job fetches provider data and
-# deploys the site in one run. It does not commit data/status.json.
-# To use it as the scheduled publisher, disable .github/workflows/update-status.yml
-# and .github/workflows/deploy-pages.yml, then uncomment the schedule below.
+# Fetches provider data and deploys the site. It does not commit
+# data/status.json. A run still publishes a new collection time when the
+# incidents and maintenance have not changed, so the live page does not
+# stay on an old timestamp.
 
 on:
+  schedule:
+    - cron: '*/5 * * * *'
   workflow_dispatch:
-  # schedule:
-  #   - cron: '*/5 * * * *'
 
 permissions:
   contents: read
@@ -43,7 +43,7 @@ jobs:
           AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
           GCP_ACCESS_TOKEN: ${{ secrets.GCP_ACCESS_TOKEN }}
-        run: node scripts/fetch-status.js
+        run: node scripts/fetch-status.js --publish
 
       - name: Assemble site
         run: |
