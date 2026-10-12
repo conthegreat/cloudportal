@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Cloud and Network Service Status</title>
   <meta name="description" content="Current incidents, degradation and planned maintenance for the configured cloud and network services.">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://azure.status.microsoft https://status.cloud.google.com https://status.aws.amazon.com https://www.cloudflarestatus.com https://status.umbrella.cisco.com https://api.synturastatus.io; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="assets/styles.css">
 </head>
@@ -20,9 +20,9 @@
       <div class="header-status" id="overall" aria-live="polite"></div>
     </div>
     <div class="wrap header-tools">
-      <p id="updated">Provider data collected: loading</p>
-      <p id="checked">This page checked the snapshot: loading</p>
-      <p id="schedule">A new snapshot is published about every 5 minutes. GitHub may start a scheduled run later. Reload reads the latest published snapshot.</p>
+      <p id="updated">Refreshing provider feeds…</p>
+      <p id="checked">Refreshing provider feeds…</p>
+      <p id="schedule">Reload reads the provider feeds in this browser. A saved snapshot is used only when a feed cannot be reached.</p>
       <div class="tool-row">
         <button type="button" id="reload" class="button">Reload status data</button>
         <div class="segment" role="group" aria-label="Data source">
@@ -68,6 +68,6 @@
   <noscript>
     <p>This dashboard needs JavaScript to read the status file. You can still open the provider status pages: <a href="https://azure.status.microsoft/en-gb/status">Azure</a>, <a href="https://status.cloud.google.com/">Google Cloud</a>, <a href="https://health.aws.amazon.com/health/status">AWS</a>, <a href="https://status.umbrella.cisco.com/">Cisco Umbrella</a>, <a href="https://www.cloudflarestatus.com/">Cloudflare</a> and <a href="https://synturastatus.io/">Syntura</a>.</p>
   </noscript>
-  <script type="module" src="assets/app.js"></script>
+  <script type="module" src="assets/app.js?v=6"></script>
 </body>
 </html>

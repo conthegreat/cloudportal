@@ -118,8 +118,9 @@ export function classifyGcpPersonalizedEvent(event) {
 }
 
 async function retrievePersonalized(ctx) {
-  const token = ctx.env?.GCP_ACCESS_TOKEN || process.env.GCP_ACCESS_TOKEN || '';
-  const projectId = ctx.env?.GCP_PROJECT_ID || process.env.GCP_PROJECT_ID || '';
+  const env = ctx.env || (typeof process === 'undefined' ? {} : process.env);
+  const token = env.GCP_ACCESS_TOKEN || '';
+  const projectId = env.GCP_PROJECT_ID || '';
   if (!token && !projectId) return null;
   if (!token || !projectId) throw new Error('Google Cloud personalised Service Health configuration is incomplete');
   if (!/^[a-z0-9-]{4,63}$/.test(projectId)) throw new Error('GCP project id is not a valid identifier');

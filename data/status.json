@@ -5,7 +5,7 @@
   "organisation": "",
   "dashboardTitle": "Cloud and Network Service Status",
   "timeZone": "Europe/London",
-  "generatedAt": "2026-10-12T10:46:44.790Z",
+  "generatedAt": "2026-10-12T12:32:25.211Z",
   "refreshMinutes": 5,
   "maintenanceLookAheadDays": 30,
   "recentlyResolvedHours": 24,
@@ -15,7 +15,7 @@
       "name": "Microsoft Azure",
       "sourceLabel": "Public Azure Status",
       "statusPageUrl": "https://azure.status.microsoft/en-gb/status",
-      "lastSuccess": "2026-10-12T10:46:44.790Z",
+      "lastSuccess": "2026-10-12T12:32:25.211Z",
       "stale": false,
       "error": null,
       "hasCache": true,
@@ -30,7 +30,7 @@
       "name": "Google Cloud Platform",
       "sourceLabel": "Public Google Cloud Status",
       "statusPageUrl": "https://status.cloud.google.com/",
-      "lastSuccess": "2026-10-12T10:46:44.790Z",
+      "lastSuccess": "2026-10-12T12:32:25.211Z",
       "stale": false,
       "error": null,
       "hasCache": true,
@@ -47,7 +47,7 @@
       "name": "Amazon Web Services",
       "sourceLabel": "Public AWS Health",
       "statusPageUrl": "https://health.aws.amazon.com/health/status",
-      "lastSuccess": "2026-10-12T10:46:44.790Z",
+      "lastSuccess": "2026-10-12T12:32:25.211Z",
       "stale": false,
       "error": null,
       "hasCache": true,
@@ -65,7 +65,7 @@
       "name": "Cisco Umbrella",
       "sourceLabel": "Cisco Umbrella status",
       "statusPageUrl": "https://status.umbrella.cisco.com/",
-      "lastSuccess": "2026-10-12T10:46:44.790Z",
+      "lastSuccess": "2026-10-12T12:32:25.211Z",
       "stale": false,
       "error": null,
       "hasCache": true,
@@ -82,15 +82,15 @@
       "name": "Cloudflare",
       "sourceLabel": "Cloudflare Status API",
       "statusPageUrl": "https://www.cloudflarestatus.com/",
-      "lastSuccess": "2026-10-12T10:46:44.790Z",
+      "lastSuccess": "2026-10-12T12:32:25.211Z",
       "stale": false,
       "error": null,
       "hasCache": true,
-      "rawCount": 78,
+      "rawCount": 77,
       "includedCount": 4,
-      "excludedCount": 74,
+      "excludedCount": 73,
       "exclusionReasons": {
-        "Limited to a region or location outside the allow-list": 19,
+        "Limited to a region or location outside the allow-list": 18,
         "Limited to a blocked region": 8,
         "Resolved outside the 24 hour retention window": 47
       },
@@ -101,7 +101,7 @@
       "name": "Syntura, formerly hSo",
       "sourceLabel": "Syntura status",
       "statusPageUrl": "https://synturastatus.io/",
-      "lastSuccess": "2026-10-12T10:46:44.790Z",
+      "lastSuccess": "2026-10-12T12:32:25.211Z",
       "stale": false,
       "error": null,
       "hasCache": true,
@@ -3088,6 +3088,40 @@
       "badges": []
     },
     {
+      "id": "cloudflare-14q9tyzl1csy",
+      "provider": "Cloudflare",
+      "sourceProvider": "cloudflare",
+      "eventType": "maintenance",
+      "title": "BOS (Boston) on 2026-10-15",
+      "status": "scheduled",
+      "severity": "maintenance",
+      "affectedServices": [
+        "Boston, MA, United States - (BOS)"
+      ],
+      "affectedComponents": [
+        "Boston, MA, United States - (BOS)"
+      ],
+      "regions": [
+        "north-america"
+      ],
+      "locations": [
+        "BOS"
+      ],
+      "isGlobal": false,
+      "startedAt": "2026-10-12T10:50:19.000Z",
+      "updatedAt": "2026-10-12T10:50:19.000Z",
+      "endedAt": null,
+      "scheduledFor": "2026-10-15T06:15:00.000Z",
+      "scheduledUntil": "2026-10-15T12:15:00.000Z",
+      "summary": "We will be performing scheduled maintenance in BOS (Boston) datacenter on 2026-10-15 between 06:15 and 12:15 UTC. Traffic might be re-routed from this location, hence there is a possibility of a slight increase in latency during this maintenance window for end-users in the affected region. For PNI / CNI customers connecting with us in this location, please make sure you are expecting this traffic to fail over elsewhere during this maintenance window as network interfaces in this datacentre may become temporarily unavailable. You can now subscribe to these notifications via Cloudflare dashboard and receive these updates directly via email, PagerDuty and webhooks (based on your plan): https://",
+      "sourceUrl": "https://www.cloudflarestatus.com/incidents/14q9tyzl1csy",
+      "included": false,
+      "inclusionReason": "Limited to a region or location outside the allow-list",
+      "matchedRegions": [],
+      "matchedComponents": [],
+      "badges": []
+    },
+    {
       "id": "cloudflare-1nvkbkbn5bsq",
       "provider": "Cloudflare",
       "sourceProvider": "cloudflare",
@@ -4814,40 +4848,6 @@
       "badges": []
     },
     {
-      "id": "cloudflare-t1qlsjwb9rvb",
-      "provider": "Cloudflare",
-      "sourceProvider": "cloudflare",
-      "eventType": "maintenance",
-      "title": "BOS (Boston) on 2026-10-12",
-      "status": "in_progress",
-      "severity": "maintenance",
-      "affectedServices": [
-        "Boston, MA, United States - (BOS)"
-      ],
-      "affectedComponents": [
-        "Boston, MA, United States - (BOS)"
-      ],
-      "regions": [
-        "north-america"
-      ],
-      "locations": [
-        "BOS"
-      ],
-      "isGlobal": false,
-      "startedAt": "2026-10-08T07:50:52.000Z",
-      "updatedAt": "2026-10-12T06:30:07.000Z",
-      "endedAt": null,
-      "scheduledFor": "2026-10-12T06:30:00.000Z",
-      "scheduledUntil": "2026-10-12T12:30:00.000Z",
-      "summary": "Scheduled maintenance is currently in progress. We will provide updates as necessary.",
-      "sourceUrl": "https://www.cloudflarestatus.com/incidents/t1qlsjwb9rvb",
-      "included": false,
-      "inclusionReason": "Limited to a region or location outside the allow-list",
-      "matchedRegions": [],
-      "matchedComponents": [],
-      "badges": []
-    },
-    {
       "id": "cloudflare-tl0vrgjy99r0",
       "provider": "Cloudflare",
       "sourceProvider": "cloudflare",
@@ -5037,40 +5037,6 @@
       "scheduledUntil": null,
       "summary": "Customers reaching Los Angeles (LAX) colo may see an elevate number of errors. Our team is investigating and working on mitigating the issue.",
       "sourceUrl": "https://www.cloudflarestatus.com/incidents/vyy1a1dspusg",
-      "included": false,
-      "inclusionReason": "Limited to a region or location outside the allow-list",
-      "matchedRegions": [],
-      "matchedComponents": [],
-      "badges": []
-    },
-    {
-      "id": "cloudflare-w1z0zy3g7dqp",
-      "provider": "Cloudflare",
-      "sourceProvider": "cloudflare",
-      "eventType": "maintenance",
-      "title": "ZRH (Zurich) on 2026-10-20",
-      "status": "scheduled",
-      "severity": "maintenance",
-      "affectedServices": [
-        "Zurich, Switzerland - (ZRH)"
-      ],
-      "affectedComponents": [
-        "Zurich, Switzerland - (ZRH)"
-      ],
-      "regions": [
-        "europe"
-      ],
-      "locations": [
-        "ZRH"
-      ],
-      "isGlobal": false,
-      "startedAt": "2026-10-09T10:40:28.000Z",
-      "updatedAt": "2026-10-09T10:40:28.000Z",
-      "endedAt": null,
-      "scheduledFor": "2026-10-20T23:00:00.000Z",
-      "scheduledUntil": "2026-10-21T07:00:00.000Z",
-      "summary": "We will be performing scheduled maintenance in ZRH (Zurich) datacenter between 2026-10-20 23:00 and 2026-10-21 07:00 UTC. Traffic might be re-routed from this location, hence there is a possibility of a slight increase in latency during this maintenance window for end-users in the affected region. For PNI / CNI customers connecting with us in this location, please make sure you are expecting this traffic to fail over elsewhere during this maintenance window as network interfaces in this datacentre may become temporarily unavailable. You can now subscribe to these notifications via Cloudflare dashboard and receive these updates directly via email, PagerDuty and webhooks (based on your plan):",
-      "sourceUrl": "https://www.cloudflarestatus.com/incidents/w1z0zy3g7dqp",
       "included": false,
       "inclusionReason": "Limited to a region or location outside the allow-list",
       "matchedRegions": [],

@@ -1,3 +1,4 @@
+import { collectStatus } from '../scripts/collect.js';
 import {
   formatAge,
   formatDuration,
@@ -23,7 +24,8 @@ const LETTERS = {
   'example-empty': 'Ex'
 };
 
-const state = { mode: 'live', status: null };
+const state = { mode: 'live', status: null, checkedAt: null, snapshotAt: null, freshness: 'pending' };
+let refreshing = false;
 
 const els = {
   title: document.querySelector('#dashboard-title'),
@@ -206,13 +208,28 @@ function render(status) {
     chip(overall),
     h('p', { class: 'meta', text: 'Calculated from events in scope only.' })
   );
-  const collectedAge = formatAge(status.generatedAt);
-  els.updated.textContent = `Provider data collected: ${formatLondon(status.generatedAt, zone)} (${collectedAge})`;
-  if (els.checked && state.checkedAt) {
-    els.checked.textContent = `This page checked the snapshot: ${formatLondon(state.checkedAt, zone)} (${formatAge(state.checkedAt)})`;
+  const metas = Object.values(status.providers || {});
+  const fresh = metas.filter((meta) => meta && !meta.stale && meta.hasCache);
+  const failed = metas.filter((meta) => meta && (meta.stale || !meta.hasCache));
+  if (state.freshness === 'pending') {
+    els.updated.textContent = 'Refreshing provider feeds…';
+    if (els.checked) els.checked.textContent = 'Reading each provider feed from this browser.';
+  } else if (state.freshness === 'live' && fresh.length > 0) {
+    els.updated.textContent = `Provider data collected: ${formatLondon(status.generatedAt, zone)} (${formatAge(status.generatedAt)})`;
+    if (els.checked) {
+      els.checked.textContent = failed.length
+        ? `This browser read the feeds just now. A saved snapshot is still in use for ${failed.map((meta) => meta.name).join(', ')}.`
+        : 'This browser read the provider feeds just now.';
+    }
+  } else if (state.freshness === 'mock') {
+    els.updated.textContent = `Mock data generated: ${formatLondon(status.generatedAt, zone)} (${formatAge(status.generatedAt)})`;
+    if (els.checked) els.checked.textContent = 'Mock scenarios are fictional and are not read from the providers.';
+  } else {
+    const when = state.snapshotAt || status.generatedAt;
+    els.updated.textContent = `Saved snapshot: ${formatLondon(when, zone)} (${formatAge(when)})`;
+    if (els.checked) els.checked.textContent = 'This browser tried the provider feeds just now and could not read them.';
   }
-  const minutes = status.refreshMinutes || 5;
-  els.schedule.textContent = `A new snapshot is published about every ${minutes} minutes. GitHub may start a scheduled run later. Reload reads the latest published snapshot.`;
+  els.schedule.textContent = 'Reload reads the provider feeds in this browser. A saved snapshot is used only when a feed cannot be reached.';
   clear(els.banners);
   if (status.mock) {
     els.banners.append(h('p', { class: 'banner banner-mock', role: 'status', text: status.mockNotice || 'Mock data. These events are fictional.' }));
@@ -255,34 +272,69 @@ function render(status) {
   if (els.loading) els.loading.hidden = true;
 }
 
-async function load(manual = false) {
-  if (manual) els.reload.disabled = true;
+async function load() {
   const file = state.mode === 'mock' ? 'data/mock-status.json' : 'data/status.json';
-  const previousCollected = state.status?.generatedAt || '';
   try {
     const response = await fetch(`${file}?t=${Date.now()}`, { cache: 'no-store' });
     if (!response.ok) throw new Error(`Status file returned HTTP ${response.status}`);
     const status = await response.json();
     if (!status || !Array.isArray(status.events) || !status.providers) throw new Error('Status file has an unexpected shape');
     state.status = status;
+    state.snapshotAt = status.generatedAt || null;
+    state.freshness = state.mode === 'live' ? 'pending' : 'mock';
     state.checkedAt = new Date().toISOString();
     render(status);
-    const overall = els.overall.querySelector('.chip')?.textContent || 'Unknown';
-    const collected = formatAge(status.generatedAt);
-    if (manual) {
-      els.live.textContent = `Reloaded the published snapshot. Provider data was collected ${collected}. Overall status is ${overall}.`;
-    } else if (previousCollected && previousCollected !== status.generatedAt) {
-      els.live.textContent = `A newer snapshot was published. Provider data was collected ${collected}. Overall status is ${overall}.`;
-    }
+    if (state.mode === 'live') await refreshFromProviders();
+    else els.live.textContent = 'Mock scenarios loaded. These events are fictional.';
   } catch (error) {
     clear(els.banners);
-    els.banners.append(h('p', { class: 'banner banner-error', role: 'alert', text: 'The status file could not be read. Provider state is unknown.' }));
-    els.live.textContent = 'The status file could not be read.';
+    els.banners.append(h('p', { class: 'banner banner-error', role: 'alert', text: 'The saved snapshot could not be read. Trying the provider feeds.' }));
+    els.live.textContent = 'The saved snapshot could not be read.';
     console.error(error?.message || 'status load failed');
+    if (state.mode === 'live') await refreshFromProviders();
   } finally {
-    els.reload.disabled = false;
     els.liveButton.setAttribute('aria-pressed', state.mode === 'live' ? 'true' : 'false');
     els.mockButton.setAttribute('aria-pressed', state.mode === 'mock' ? 'true' : 'false');
+  }
+}
+
+async function refreshFromProviders() {
+  if (state.mode !== 'live' || refreshing) return;
+  refreshing = true;
+  els.reload.disabled = true;
+  state.freshness = 'pending';
+  els.updated.textContent = 'Refreshing provider feeds…';
+  if (els.checked) els.checked.textContent = 'Reading each provider feed from this browser.';
+  try {
+    const configResponse = await fetch(`config/providers.json?t=${Date.now()}`, { cache: 'no-store' });
+    if (!configResponse.ok) throw new Error('Config could not be read');
+    const config = await configResponse.json();
+    const status = await collectStatus({
+      config,
+      previous: state.status && state.status.mock !== true ? state.status : null,
+      env: {}
+    });
+    const freshCount = Object.values(status.providers).filter((meta) => !meta.stale && meta.hasCache).length;
+    state.status = status;
+    state.checkedAt = new Date().toISOString();
+    state.freshness = freshCount > 0 ? 'live' : 'snapshot';
+    render(status);
+    const stale = Object.values(status.providers).filter((meta) => meta.stale || !meta.hasCache).map((meta) => meta.name);
+    const overall = els.overall.querySelector('.chip')?.textContent || 'Unknown';
+    els.live.textContent = freshCount === 0
+      ? 'The provider feeds could not be read. Showing the saved snapshot.'
+      : stale.length
+        ? `Feeds refreshed just now. Overall status is ${overall}. A saved copy is still in use for ${stale.join(', ')}.`
+        : `Feeds refreshed just now. Overall status is ${overall}.`;
+  } catch (error) {
+    state.freshness = 'snapshot';
+    if (state.status) render(state.status);
+    else if (els.checked) els.checked.textContent = 'The provider feeds could not be refreshed. There is no saved snapshot.';
+    els.live.textContent = 'The provider feeds could not be refreshed.';
+    console.error(error?.message || 'refresh failed');
+  } finally {
+    refreshing = false;
+    els.reload.disabled = false;
   }
 }
 
@@ -292,8 +344,11 @@ function setMode(mode) {
   load();
 }
 
-els.reload.addEventListener('click', () => load(true));
-window.setInterval(() => load(false), 60000);
+els.reload.addEventListener('click', () => {
+  if (state.mode === 'mock') load();
+  else refreshFromProviders();
+});
+window.setInterval(() => refreshFromProviders(), 5 * 60 * 1000);
 els.liveButton.addEventListener('click', () => setMode('live'));
 els.mockButton.addEventListener('click', () => setMode('mock'));
 

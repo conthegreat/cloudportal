@@ -49,7 +49,7 @@ jobs:
         run: |
           mkdir _site
           cp index.html LICENSE README.md _site/
-          cp -R assets config data _site/
+          cp -R assets config data scripts _site/
 
       - name: Configure Pages
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0

@@ -163,7 +163,7 @@ async function listServiceHealth(http, token, subscriptionId) {
 }
 
 export async function retrieve(ctx) {
-  const env = ctx.env || process.env;
+  const env = ctx.env || (typeof process === 'undefined' ? {} : process.env);
   let auth = null;
   try {
     auth = credentials(env);

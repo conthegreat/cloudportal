@@ -2,7 +2,7 @@
 
 A single-page dashboard for configured cloud and network services. It shows current incidents, service degradation, maintenance in progress, upcoming planned maintenance, and incidents resolved in the last 24 hours.
 
-The page is static HTML, CSS and JavaScript. A Node.js collector in GitHub Actions retrieves each provider, applies the configured filters, and writes `data/status.json`. The browser only reads that file. It does not call provider APIs and it does not hold credentials.
+The page is static HTML, CSS and JavaScript. When it opens, and when you use **Reload status data**, the browser reads the public provider feeds and applies the same filters as the collector. It does not hold credentials. `data/status.json` is a saved snapshot. The page uses that snapshot only for a feed the browser cannot read. A Node.js collector in GitHub Actions refreshes the snapshot so that fallback stays current.
 
 Public feeds are labelled as public. They are not a personalised view of any subscription.
 
@@ -16,7 +16,7 @@ Public feeds are labelled as public. They are not a personalised view of any sub
 - A disclosure of excluded events and the reason each one was dropped.
 - Times on screen in Europe/London, shown as GMT or BST. Stored timestamps are ISO 8601 UTC.
 
-Reload reads the JSON file again. It does not contact the providers. The scheduled collector does that.
+**Reload status data** reads the provider feeds again. It does not stop at the saved snapshot. The collection time in the header is the time of that browser read. A provider that cannot be read keeps its snapshot and is marked stale. The header does not call that a fresh collection of every feed.
 
 ## Repository layout
 
@@ -126,19 +126,19 @@ An event is included when a structured region or component matches an allowed va
 
 `.github/workflows/deploy-without-commit.yml` is the live publisher. It runs on `workflow_dispatch` and on cron `*/5 * * * *`. Five minutes is the shortest interval GitHub documents. GitHub can start a scheduled run later than the cron time, and may pause schedules after 60 days without a repository commit.
 
-The job fetches every provider and deploys the site. It does not commit `data/status.json`. It passes `--publish`, so the live snapshot gets a new collection time even when the incidents have not changed. Reload on the page reads that published file. The page also checks for a newer file about once a minute.
+The job fetches every provider and deploys the site. It does not commit `data/status.json`. It passes `--publish`, so the saved snapshot gets a new collection time even when the incidents have not changed. The page does not wait for that job: **Reload status data** reads the provider feeds in the browser, and the page does the same when it opens and about every 5 minutes after that. The saved snapshot is used only when a feed cannot be read from the browser. Azure’s public RSS feed does not allow browser requests, so that card keeps the saved snapshot until this job publishes a newer one.
 
 `.github/workflows/update-status.yml` is manual. Run it when the copy of `data/status.json` in the repository should be updated. It commits only when the events or provider errors change, so a timestamp by itself does not create a commit. Permission is `contents: write`. One failed provider keeps that provider’s previous events, marks it stale, and lets the others update. The commit identity is `github-actions[bot]`. The workflow does not print secrets.
 
 ### GitHub Pages
 
-`.github/workflows/deploy-pages.yml` deploys on every push to `main`, and on `workflow_dispatch`. It publishes `index.html`, `assets/`, `config/`, `data/`, `LICENSE` and `README.md`. It does not publish `scripts/` or `.git`.
+`.github/workflows/deploy-pages.yml` deploys on every push to `main`, and on `workflow_dispatch`. It publishes `index.html`, `assets/`, `config/`, `data/`, `scripts/`, `LICENSE` and `README.md`. The page imports the collector from `scripts/`. It does not publish `.git`. The published scripts contain no credentials.
 
 1. Create a repository and push this directory to the `main` branch. If the default branch has another name, change `branches: [main]` in `deploy-pages.yml`.
 2. In the repository, open **Settings → Pages → Build and deployment** and choose **GitHub Actions**.
 3. Run **Update status data** once from the Actions tab if you want a fresh `data/status.json` before the first Pages deploy. The copy in this repository is a real collection, not mock data.
 4. Run **Deploy GitHub Pages**, or push to `main`. The job’s environment URL is the Pages site.
-5. Confirm the live page loads `data/status.json` and that **Preview mock scenarios** loads `data/mock-status.json`.
+5. Confirm the live page replaces the snapshot collection time after it reads the provider feeds, and that **Preview mock scenarios** loads `data/mock-status.json` without calling those feeds.
 
 The first Pages run needs the `github-pages` environment. GitHub creates it when the deploy workflow runs. No extra hosting service is required.
 
@@ -208,7 +208,7 @@ Cisco Umbrella, Cloudflare and Syntura use public status APIs. No extra secret i
 
 **Syntura.** `https://synturastatus.io/` is a single-page app. The collector calls `https://api.synturastatus.io/data`, which is the JSON endpoint the official app loads. Syntura does not publish a stable contract for that URL, so the path can change and the adapter will then fail closed: the last good Syntura events stay, marked stale. Only the first page is requested. Staff fields (`adminuser`, names and hashes) are discarded. Device names that Syntura puts in the public title are kept. The source link is the status site, not an invented per-item URL. With empty allow-lists, events are included until `allowedServices` or `allowedLocations` is filled in.
 
-**Schedule and freshness.** A quiet feed does not make a provider stale. Stale is set only when a later retrieval fails and cached events are reused. The page does not call a provider “last checked” from `generatedAt`, because an unchanged file is not rewritten.
+**Schedule and freshness.** A quiet feed does not make a provider stale. Stale is set only when a later retrieval fails and cached events are reused. In the browser, `generatedAt` is the time that read started, including when the included events have not changed. The repository file is rewritten on a timestamp-only run only when the collector is started with `--publish`.
 
 **Statuspage partial failure.** Cloudflare and Cisco request `/api/v2/summary.json` first, then components, unresolved incidents, incident history, and active and upcoming maintenance. A 404 on a later path is a warning when another path succeeded. If every path fails, that provider fails and the others continue.
 
@@ -225,7 +225,7 @@ The tests cover the region rules for all six providers, retention, the maintenan
 - No provider credentials in the site, the config file, or the committed JSON.
 - Provider text is written with `textContent`. The page does not use `innerHTML` for feed content. HTML in summaries is stripped before it is stored.
 - External links use `rel="noopener noreferrer"` and an `http` or `https` URL check.
-- The page sets a Content Security Policy: `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'`.
+- The page sets a Content Security Policy. `connect-src` allows only this site and the official provider feed hosts: `azure.status.microsoft`, `status.cloud.google.com`, `status.aws.amazon.com`, `www.cloudflarestatus.com`, `status.umbrella.cisco.com` and `api.synturastatus.io`. There is no CORS proxy.
 - Collector requests time out after 20 seconds and reject bodies over 8 MB. Malformed JSON and XML fail that provider only.
 - GitHub Actions are pinned to commit SHAs. Workflow permissions are limited to the job.
 

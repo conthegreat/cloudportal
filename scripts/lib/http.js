@@ -4,15 +4,19 @@ export function createHttp() {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
       try {
-        const response = await fetch(url, {
+        const requestHeaders = {
+          Accept: 'application/json, application/xml, text/xml, application/atom+xml, */*',
+          ...headers
+        };
+        if (typeof window === 'undefined') requestHeaders['User-Agent'] = 'Cloud-Status/1.0';
+        const request = {
           signal: controller.signal,
           redirect: 'follow',
-          headers: {
-            'User-Agent': 'Cloud-Status/1.0',
-            Accept: 'application/json, application/xml, text/xml, application/atom+xml, */*',
-            ...headers
-          }
-        });
+          headers: requestHeaders
+        };
+        // Bypass the browser HTTP cache so Reload cannot reuse an old feed.
+        if (typeof window !== 'undefined') request.cache = 'no-store';
+        const response = await fetch(url, request);
         if (!response.ok) throw new Error(`${label} failed with HTTP ${response.status}`);
         const text = await response.text();
         if (text.length > 8_000_000) throw new Error(`${label} response was too large`);
@@ -21,6 +25,9 @@ export function createHttp() {
         if (error?.name === 'AbortError') throw new Error(`${label} timed out`);
         const message = error?.message || 'request failed';
         if (message.startsWith(label)) throw error;
+        if (typeof window !== 'undefined' && (error?.name === 'TypeError' || /Failed to fetch|NetworkError/.test(message))) {
+          throw new Error(`${label} cannot be read from this browser`);
+        }
         throw new Error(`${label} failed`);
       } finally {
         clearTimeout(timer);
