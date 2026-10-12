@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
-import { overallStatus, providerStatus, statusFromEvents } from '../assets/status-model.js';
+import { feedBlockedInBrowser, overallStatus, providerStatus, statusFromEvents } from '../assets/status-model.js';
 import { decideInclusion } from '../scripts/filter.js';
 import { createEvent } from '../scripts/lib/event.js';
 import { parseRssItems } from '../scripts/lib/rss.js';
@@ -120,6 +120,19 @@ test('mock scenarios include the configured scope and exclude unrelated regions'
   assert.equal(document.providers['example-empty'].stale, true);
   assert.equal(providerStatus([byId['mock-gcp-cached']], document.providers.gcp), 'degraded');
   assert.equal(providerStatus([], document.providers['example-empty']), 'unknown');
+});
+
+test('a browser-blocked feed with a saved snapshot stays on that snapshot', () => {
+  const blocked = {
+    hasCache: true,
+    stale: true,
+    error: 'Public Azure Status cannot be read from this browser',
+    lastSuccess: '2026-10-12T12:34:29.538Z'
+  };
+  assert.equal(feedBlockedInBrowser(blocked), true);
+  assert.equal(feedBlockedInBrowser({ ...blocked, hasCache: false }), false);
+  assert.equal(feedBlockedInBrowser({ hasCache: true, stale: true, error: 'Public Azure Status timed out' }), false);
+  assert.equal(providerStatus([], blocked), 'operational');
 });
 
 test('overall status does not claim operational when a provider has no cache', () => {

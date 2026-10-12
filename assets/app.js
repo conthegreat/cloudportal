@@ -6,6 +6,7 @@ import {
   formatRemaining,
   isCurrentIncident,
   isVisibleMaintenance,
+  feedBlockedInBrowser,
   overallStatus,
   providerStatus,
   sortIncidents,
@@ -182,7 +183,9 @@ function providerCard(meta, events, zone) {
     ]),
     h('p', { class: 'meta', text: meta.lastSuccess ? `Last successful retrieval ${formatLondon(meta.lastSuccess, zone)} (${formatAge(meta.lastSuccess)})` : 'No successful retrieval' })
   ];
-  if (meta.stale && meta.hasCache) {
+  if (feedBlockedInBrowser(meta)) {
+    children.push(h('p', { class: 'meta', text: 'The browser cannot read this feed. This card uses the published snapshot from the collection job.' }));
+  } else if (meta.stale && meta.hasCache) {
     children.push(h('p', { class: 'warning', text: `Stale data. Showing the cached feed from ${formatAge(meta.lastSuccess)}. ${meta.error || ''}`.trim() }));
   }
   if (!meta.hasCache) {
@@ -210,16 +213,21 @@ function render(status) {
   );
   const metas = Object.values(status.providers || {});
   const fresh = metas.filter((meta) => meta && !meta.stale && meta.hasCache);
-  const failed = metas.filter((meta) => meta && (meta.stale || !meta.hasCache));
+  const blocked = metas.filter((meta) => feedBlockedInBrowser(meta));
+  const failed = metas.filter((meta) => meta && (meta.stale || !meta.hasCache) && !feedBlockedInBrowser(meta));
+  const blockedNote = blocked.map((meta) => `${meta.name} uses the published snapshot (${formatAge(meta.lastSuccess)})`).join('. ');
   if (state.freshness === 'pending') {
     els.updated.textContent = 'Refreshing provider feeds…';
     if (els.checked) els.checked.textContent = 'Reading each provider feed from this browser.';
   } else if (state.freshness === 'live' && fresh.length > 0) {
     els.updated.textContent = `Provider data collected: ${formatLondon(status.generatedAt, zone)} (${formatAge(status.generatedAt)})`;
     if (els.checked) {
-      els.checked.textContent = failed.length
-        ? `This browser read the feeds just now. A saved snapshot is still in use for ${failed.map((meta) => meta.name).join(', ')}.`
+      const read = failed.length || blocked.length
+        ? 'This browser read the other feeds just now.'
         : 'This browser read the provider feeds just now.';
+      const problems = failed.length ? ` A saved snapshot is still in use for ${failed.map((meta) => meta.name).join(', ')}.` : '';
+      const published = blockedNote ? ` ${blockedNote}.` : '';
+      els.checked.textContent = `${read}${problems}${published}`;
     }
   } else if (state.freshness === 'mock') {
     els.updated.textContent = `Mock data generated: ${formatLondon(status.generatedAt, zone)} (${formatAge(status.generatedAt)})`;
@@ -234,7 +242,7 @@ function render(status) {
   if (status.mock) {
     els.banners.append(h('p', { class: 'banner banner-mock', role: 'status', text: status.mockNotice || 'Mock data. These events are fictional.' }));
   }
-  const stale = providers.filter((meta) => meta.stale || !meta.hasCache);
+  const stale = providers.filter((meta) => (meta.stale || !meta.hasCache) && !feedBlockedInBrowser(meta));
   if (stale.length) {
     els.banners.append(h('p', {
       class: 'banner banner-stale',
@@ -309,9 +317,11 @@ async function refreshFromProviders() {
     const configResponse = await fetch(`config/providers.json?t=${Date.now()}`, { cache: 'no-store' });
     if (!configResponse.ok) throw new Error('Config could not be read');
     const config = await configResponse.json();
+    const published = await readSnapshot();
+    if (published?.generatedAt) state.snapshotAt = published.generatedAt;
     const status = await collectStatus({
       config,
-      previous: state.status && state.status.mock !== true ? state.status : null,
+      previous: withNewerPublishedProvider(state.status, published, 'azure'),
       env: {}
     });
     const freshCount = Object.values(status.providers).filter((meta) => !meta.stale && meta.hasCache).length;
@@ -319,13 +329,15 @@ async function refreshFromProviders() {
     state.checkedAt = new Date().toISOString();
     state.freshness = freshCount > 0 ? 'live' : 'snapshot';
     render(status);
-    const stale = Object.values(status.providers).filter((meta) => meta.stale || !meta.hasCache).map((meta) => meta.name);
+    const stale = Object.values(status.providers).filter((meta) => (meta.stale || !meta.hasCache) && !feedBlockedInBrowser(meta)).map((meta) => meta.name);
+    const blockedLive = Object.values(status.providers).filter((meta) => feedBlockedInBrowser(meta)).map((meta) => meta.name);
     const overall = els.overall.querySelector('.chip')?.textContent || 'Unknown';
+    const publishedLive = blockedLive.length ? ` ${blockedLive.join(', ')} uses the published snapshot.` : '';
     els.live.textContent = freshCount === 0
       ? 'The provider feeds could not be read. Showing the saved snapshot.'
       : stale.length
-        ? `Feeds refreshed just now. Overall status is ${overall}. A saved copy is still in use for ${stale.join(', ')}.`
-        : `Feeds refreshed just now. Overall status is ${overall}.`;
+        ? `Feeds refreshed just now. Overall status is ${overall}. A saved copy is still in use for ${stale.join(', ')}.${publishedLive}`
+        : `Feeds refreshed just now. Overall status is ${overall}.${publishedLive}`;
   } catch (error) {
     state.freshness = 'snapshot';
     if (state.status) render(state.status);
@@ -336,6 +348,34 @@ async function refreshFromProviders() {
     refreshing = false;
     els.reload.disabled = false;
   }
+}
+
+async function readSnapshot() {
+  try {
+    const response = await fetch(`data/status.json?t=${Date.now()}`, { cache: 'no-store' });
+    if (!response.ok) return null;
+    const body = await response.json();
+    if (!body || body.mock === true || !Array.isArray(body.events) || !body.providers) return null;
+    return body;
+  } catch {
+    return null;
+  }
+}
+
+function withNewerPublishedProvider(current, published, providerId) {
+  const base = current && current.mock !== true ? current : null;
+  if (!published?.providers?.[providerId]) return base;
+  if (!base) return published;
+  const currentAt = Date.parse(base.providers?.[providerId]?.lastSuccess || 0);
+  const publishedAt = Date.parse(published.providers[providerId].lastSuccess || 0);
+  if (!(publishedAt > currentAt)) return base;
+  const events = (base.events || []).filter((event) => event.sourceProvider !== providerId);
+  events.push(...(published.events || []).filter((event) => event.sourceProvider === providerId));
+  return {
+    ...base,
+    providers: { ...base.providers, [providerId]: published.providers[providerId] },
+    events
+  };
 }
 
 function setMode(mode) {

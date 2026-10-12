@@ -59,6 +59,15 @@ export function providerStatus(events, meta) {
   return statusFromEvents(events);
 }
 
+export function feedBlockedInBrowser(meta) {
+  return Boolean(
+    meta?.hasCache
+    && meta?.stale
+    && typeof meta.error === 'string'
+    && meta.error.includes('cannot be read from this browser')
+  );
+}
+
 export function overallStatus(providerStatuses) {
   const active = providerStatuses.filter((status) => status !== 'operational' && status !== 'unknown');
   if (active.length) return worstStatus(active);
