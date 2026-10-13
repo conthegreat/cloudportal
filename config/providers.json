@@ -21,6 +21,14 @@
       "statusPageUrl": "https://status.cloud.google.com/",
       "feedUrl": "https://status.cloud.google.com/incidents.json"
     },
+    "oracle": {
+      "enabled": true,
+      "allowedRegions": ["uk-london-1", "uk-cardiff-1"],
+      "includeGlobal": true,
+      "statusPageUrl": "https://ocistatus.oraclecloud.com/",
+      "feedUrl": "https://ocistatus.oraclecloud.com/api/v2/incident-summary.rss",
+      "healthUrl": "https://ocistatus.oraclecloud.com/api/v2/components.json"
+    },
     "aws": {
       "enabled": true,
       "allowedRegions": ["eu-west-2"],
@@ -87,6 +95,13 @@
       "statusPageUrl": "https://www.cloudflarestatus.com/",
       "feedUrl": "https://www.cloudflarestatus.com/api/v2/summary.json"
     },
+    "govwifi": {
+      "enabled": true,
+      "allowedRegions": ["uk"],
+      "includeGlobal": true,
+      "statusPageUrl": "https://status.wifi.service.gov.uk/",
+      "feedUrl": "https://status.wifi.service.gov.uk/api/v2/summary.json"
+    },
     "syntura": {
       "enabled": true,
       "allowedServices": [],
@@ -95,6 +110,14 @@
       "includeWhenUnconfigured": true,
       "statusPageUrl": "https://synturastatus.io/",
       "feedUrl": "https://api.synturastatus.io/data"
+    }
+  },
+  "advisories": {
+    "cisco": {
+      "enabled": true,
+      "retentionDays": 7,
+      "statusPageUrl": "https://sec.cloudapps.cisco.com/security/center/publicationListing.x",
+      "feedUrl": "https://sec.cloudapps.cisco.com/security/center/psirtrss20/CiscoSecurityAdvisory.xml"
     }
   }
 }

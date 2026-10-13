@@ -13,6 +13,9 @@ import { ciscoSignals, classifyCiscoEvent } from '../scripts/providers/cisco-umb
 import { classifyCloudflareEvent } from '../scripts/providers/cloudflare.js';
 import { classifyGcpIncident, classifyGcpPersonalizedEvent } from '../scripts/providers/gcp.js';
 import { buildComponentIndex } from '../scripts/providers/statuspage.js';
+import { classifyCiscoAdvisory, retainCiscoAdvisories, selectCiscoAdvisories } from '../scripts/advisories/cisco-psirt.js';
+import { classifyGovWifiEvent } from '../scripts/providers/govwifi.js';
+import { classifyOracleHealthReport, classifyOracleRssItem } from '../scripts/providers/oracle.js';
 import { classifySynturaItem } from '../scripts/providers/syntura.js';
 
 const config = JSON.parse(fs.readFileSync(new URL('../config/providers.json', import.meta.url)));
@@ -109,6 +112,11 @@ test('mock scenarios include the configured scope and exclude unrelated regions'
   assert.equal(byId['mock-cloudflare-lhr'].included, true);
   assert.equal(byId['mock-cloudflare-lhr'].badges.includes('London LHR'), true);
   assert.equal(byId['mock-cloudflare-sin'].included, false);
+  assert.equal(byId['mock-oracle-london'].included, true);
+  assert.equal(byId['mock-oracle-london'].badges.includes('UK South (London)'), true);
+  assert.equal(byId['mock-oracle-ashburn'].included, false);
+  assert.equal(byId['mock-oracle-global'].included, true);
+  assert.equal(byId['mock-govwifi-maint'].included, true);
   assert.equal(byId['mock-syntura-maint'].included, true);
   assert.match(byId['mock-syntura-maint'].inclusionReason, /allow-list/i);
   assert.equal(byId['mock-gcp-cached'].included, true);
@@ -120,6 +128,46 @@ test('mock scenarios include the configured scope and exclude unrelated regions'
   assert.equal(document.providers['example-empty'].stale, true);
   assert.equal(providerStatus([byId['mock-gcp-cached']], document.providers.gcp), 'degraded');
   assert.equal(providerStatus([], document.providers['example-empty']), 'unknown');
+});
+
+test('Cisco PSIRT items keep CVE advisories and drop advance notices', () => {
+  const selected = selectCiscoAdvisories([
+    {
+      title: 'Cisco NX-OS Software NX-API Remote Code Execution Vulnerability',
+      link: 'https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-example?vs_f=rss',
+      guid: 'https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-example',
+      pubDate: '2026-10-08 14:11:23.0',
+      description: '&lt;p&gt;A vulnerability. Security Impact Rating: Critical. CVE-2026-76471.&lt;/p&gt;'
+    },
+    {
+      title: 'Cisco Advance Notification for Publication of October 2026 Security Advisories',
+      pubDate: '2026-10-09 12:00:00.0',
+      description: 'Advance notice. CVE-2026-70001.'
+    },
+    {
+      title: 'Cisco product update with no vulnerability identifier',
+      pubDate: '2026-10-10 12:00:00.0',
+      description: 'Security Impact Rating: High. No identifier in this item.'
+    }
+  ], 6);
+  assert.equal(selected.length, 1);
+  assert.equal(selected[0].severity, 'critical');
+  assert.deepEqual(selected[0].cves, ['CVE-2026-76471']);
+  assert.equal(selected[0].publishedAt, '2026-10-08T14:11:23Z');
+  assert.equal(selected[0].url, 'https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-example');
+  assert.equal(classifyCiscoAdvisory({ title: '' }), null);
+});
+
+test('Cisco advisories stay for seven days and a failed read does not drop them', () => {
+  const now = new Date('2026-10-13T12:00:00.000Z');
+  const recent = { id: 'recent', title: 'Recent', publishedAt: '2026-10-12T09:00:00.000Z', cves: ['CVE-2026-10001'] };
+  const weekOld = { id: 'week', title: 'Still in the week', publishedAt: '2026-10-06T12:00:00.000Z', cves: ['CVE-2026-10002'] };
+  const expired = { id: 'old', title: 'Expired', publishedAt: '2026-10-05T12:00:00.000Z', cves: ['CVE-2026-10003'] };
+  const incoming = { id: 'new', title: 'Published today', publishedAt: '2026-10-13T08:00:00.000Z', cves: ['CVE-2026-10004'] };
+  const kept = retainCiscoAdvisories([incoming], [recent, weekOld, expired], { now, retentionDays: 7 });
+  assert.deepEqual(kept.map((item) => item.id), ['new', 'recent', 'week']);
+  const afterFailure = retainCiscoAdvisories([], kept, { now, retentionDays: 7 });
+  assert.deepEqual(afterFailure.map((item) => item.id), ['new', 'recent', 'week']);
 });
 
 test('a browser-blocked feed with a saved snapshot stays on that snapshot', () => {
@@ -356,6 +404,100 @@ test('Cloudflare uses component locations rather than title keywords alone', () 
   ]), 'incident', config.providers.cloudflare);
   assert.equal(china.isGlobal, false);
   assert.equal(decideInclusion(china, config.providers.cloudflare, settings).included, false);
+});
+
+test('Oracle keeps UK data centres and an explicit global event', () => {
+  const london = classifyOracleRssItem({
+    title: 'Networking | UK South (London) | cd35031e',
+    description: 'Identified - customers in the UK South (London) region. Start Time : October 12, 2026 10:29 UTC',
+    pubDate: 'Mon, 12 Oct 2026 11:00:00 UTC',
+    link: 'https://ocistatus.oraclecloud.com/#/incidents/london',
+    guid: 'london'
+  });
+  const newport = classifyOracleRssItem({
+    title: 'Multiple Services | UK West (Newport) | be602230',
+    description: 'Investigating - UK West (Newport).',
+    pubDate: 'Mon, 12 Oct 2026 11:00:00 UTC',
+    guid: 'newport'
+  });
+  const ashburn = classifyOracleRssItem({
+    title: 'Networking | US East (Ashburn) | f4c0b86b',
+    description: 'Identified - US East (Ashburn) only.',
+    pubDate: 'Mon, 12 Oct 2026 11:00:00 UTC',
+    guid: 'ashburn'
+  });
+  const globalIssue = classifyOracleRssItem({
+    title: 'Oracle Cloud Infrastructure Compute | Multiple Regions | 68cc9191',
+    description: 'Identified - caused by the global issue affecting several regions.',
+    pubDate: 'Mon, 12 Oct 2026 11:00:00 UTC',
+    guid: 'global'
+  });
+  const multiForeign = classifyOracleRssItem({
+    title: 'Oracle Cloud Infrastructure Virtual Cloud Network (VCN) | Multiple Regions | 2e52437c',
+    description: 'Identified - UAE Central (Abu Dhabi) and Spain Central (Madrid) only.',
+    pubDate: 'Mon, 12 Oct 2026 11:00:00 UTC',
+    guid: 'multi'
+  });
+  assert.equal(london.regions.includes('uk-london-1'), true);
+  assert.equal(london.startedAt, '2026-10-12T10:29:00.000Z');
+  assert.equal(decideInclusion(london, config.providers.oracle, settings).included, true);
+  assert.equal(decideInclusion(newport, config.providers.oracle, settings).included, true);
+  assert.equal(decideInclusion(newport, config.providers.oracle, settings).badges.includes('UK West (Newport)'), true);
+  assert.equal(decideInclusion(ashburn, config.providers.oracle, settings).included, false);
+  assert.equal(globalIssue.isGlobal, true);
+  assert.equal(decideInclusion(globalIssue, config.providers.oracle, settings).included, true);
+  assert.equal(multiForeign.isGlobal, false);
+  assert.equal(decideInclusion(multiForeign, config.providers.oracle, settings).included, false);
+  const degraded = classifyOracleHealthReport({
+    regionHealthReports: [
+      {
+        regionName: 'UK South (London)',
+        regionCanonicalName: 'uk-london-1',
+        serviceHealthReports: [{ serviceName: 'Compute', serviceCanonicalName: 'compute', serviceStatus: 'DegradedPerformance' }]
+      },
+      {
+        regionName: 'UK South(London)',
+        regionCanonicalName: 'mc-uk-london-1',
+        serviceHealthReports: [{ serviceName: 'Compute', serviceCanonicalName: 'compute', serviceStatus: 'DegradedPerformance' }]
+      },
+      {
+        regionName: 'US East (Ashburn)',
+        regionCanonicalName: 'us-ashburn-1',
+        serviceHealthReports: [{ serviceName: 'Compute', serviceCanonicalName: 'compute', serviceStatus: 'ServiceDown' }]
+      },
+      {
+        regionName: 'UK West (Newport)',
+        regionCanonicalName: 'uk-cardiff-1',
+        serviceHealthReports: [{ serviceName: 'Block Volumes', serviceCanonicalName: 'block', serviceStatus: 'NormalPerformance' }]
+      }
+    ]
+  });
+  assert.equal(degraded.length, 1);
+  assert.equal(degraded[0].regions[0], 'uk-london-1');
+  assert.equal(degraded[0].severity, 'degraded');
+  assert.equal(decideInclusion(degraded[0], config.providers.oracle, settings).included, true);
+});
+
+test('GovWifi keeps the UK service', () => {
+  const index = buildComponentIndex([
+    { id: 'radius', name: 'RADIUS Authentication Service' }
+  ]);
+  const maintenance = classifyGovWifiEvent({
+    id: 'maint-1',
+    name: 'GovWifi Database Maintenance',
+    status: 'scheduled',
+    impact: 'maintenance',
+    started_at: '2026-10-12T09:00:00.000Z',
+    updated_at: '2026-10-12T09:00:00.000Z',
+    scheduled_for: '2026-10-15T18:00:00.000Z',
+    scheduled_until: '2026-10-15T19:00:00.000Z',
+    components: [{ id: 'radius', name: 'RADIUS Authentication Service' }],
+    incident_updates: [{ created_at: '2026-10-12T09:00:00.000Z', body: 'Database maintenance for the UK service.' }]
+  }, index, 'maintenance');
+  const decision = decideInclusion(maintenance, config.providers.govwifi, settings);
+  assert.equal(decision.included, true);
+  assert.equal(decision.badges.includes('UK'), true);
+  assert.equal(maintenance.affectedServices.includes('RADIUS Authentication Service'), true);
 });
 
 test('Syntura drops staff fields and honours a later allow-list', () => {

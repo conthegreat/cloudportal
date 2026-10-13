@@ -1,3 +1,4 @@
+import { retainCiscoAdvisories } from '../scripts/advisories/cisco-psirt.js';
 import { collectStatus } from '../scripts/collect.js';
 import {
   formatAge,
@@ -14,17 +15,21 @@ import {
   statusLabel
 } from './status-model.js';
 
-const ORDER = ['azure', 'gcp', 'aws', 'ciscoUmbrella', 'cloudflare', 'syntura', 'example-empty'];
+const ORDER = ['azure', 'gcp', 'aws', 'oracle', 'ciscoUmbrella', 'cloudflare', 'govwifi', 'syntura', 'example-empty'];
 const LETTERS = {
   azure: 'Az',
   gcp: 'G',
   aws: 'Aw',
+  oracle: 'Or',
   ciscoUmbrella: 'Um',
   cloudflare: 'Cf',
+  govwifi: 'Gw',
   syntura: 'Sy',
   'example-empty': 'Ex'
 };
 
+const ADVISORY_STORE = 'cisco-psirt-week';
+const ADVISORY_DAYS = 7;
 const state = { mode: 'live', status: null, checkedAt: null, snapshotAt: null, freshness: 'pending' };
 let refreshing = false;
 
@@ -35,6 +40,8 @@ const els = {
   schedule: document.querySelector('#schedule'),
   banners: document.querySelector('#banners'),
   cards: document.querySelector('#provider-cards'),
+  advisories: document.querySelector('#advisories'),
+  advisoryNote: document.querySelector('#advisory-note'),
   incidents: document.querySelector('#incidents'),
   maintenance: document.querySelector('#maintenance'),
   resolved: document.querySelector('#resolved'),
@@ -82,6 +89,32 @@ function chip(status, label = statusLabel(status)) {
   return h('span', { class: 'chip', 'data-status': status, text: label });
 }
 
+function advisoryChip(severity) {
+  const status = { critical: 'major', high: 'partial', medium: 'degraded' }[severity] || 'unknown';
+  const label = { critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low', informational: 'Informational', unrated: 'Unrated' }[severity] || 'Unrated';
+  return chip(status, label);
+}
+
+function advisoryArticle(item, zone) {
+  const cves = item.cves || [];
+  const shown = cves.slice(0, 3).join(', ');
+  const extra = cves.length > 3 ? ` +${cves.length - 3} more` : '';
+  const when = item.publishedAt ? formatLondon(item.publishedAt, zone) : 'Date not supplied';
+  const title = item.url
+    ? h('a', { href: item.url, target: '_blank', rel: 'noopener noreferrer' }, [
+      document.createTextNode(item.title),
+      h('span', { class: 'visually-hidden', text: ' (opens in a new tab)' })
+    ])
+    : document.createTextNode(item.title);
+  return h('article', { class: 'advisory', 'data-severity': item.severity || 'unrated' }, [
+    h('div', { class: 'advisory-top' }, [
+      h('h3', {}, [title]),
+      advisoryChip(item.severity)
+    ]),
+    h('p', { class: 'meta', text: `${shown}${extra} · ${when}` })
+  ]);
+}
+
 function icon(id) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('viewBox', '0 0 48 48');
@@ -102,6 +135,48 @@ function icon(id) {
   text.textContent = LETTERS[id] || 'S';
   svg.append(rect, text);
   return svg;
+}
+
+function renderAdvisories(status, zone) {
+  if (!els.advisories) return;
+  clear(els.advisories);
+  if (status.mock) {
+    if (els.advisoryNote) els.advisoryNote.textContent = 'The mock preview does not load the Cisco advisory feed.';
+    els.advisories.append(h('p', { class: 'empty', text: 'No Cisco CVEs are shown in the mock preview.' }));
+    return;
+  }
+  const feed = status.advisoryFeed;
+  const items = Array.isArray(status.advisories) ? status.advisories : [];
+  if (els.advisoryNote) {
+    if (items.length > 0 && feed && !feed.stale) {
+      els.advisoryNote.textContent = `Cisco PSIRT RSS, read ${formatAge(feed.lastSuccess)}. New advisories stay for 7 days.`;
+    } else if (items.length > 0) {
+      els.advisoryNote.textContent = 'Cisco PSIRT RSS. Advisories from the last 7 days stay on this screen.';
+    } else if (state.freshness === 'pending') {
+      els.advisoryNote.textContent = 'Reading the Cisco PSIRT feed…';
+    } else if (feed?.stale) {
+      els.advisoryNote.textContent = 'The Cisco PSIRT feed could not be read just now.';
+    } else {
+      els.advisoryNote.textContent = 'No Cisco CVEs were published in the last 7 days.';
+    }
+  }
+  if (items.length === 0) {
+    const text = state.freshness === 'pending'
+      ? 'Checking the Cisco advisory feed.'
+      : feed?.stale
+        ? 'The Cisco PSIRT feed could not be read just now.'
+        : 'No Cisco CVEs were published in the last 7 days.';
+    els.advisories.append(h('p', { class: 'empty', text }));
+    return;
+  }
+  for (const item of items) els.advisories.append(advisoryArticle(item, zone));
+}
+
+function setChecked(text) {
+  if (!els.checked) return;
+  const value = text || '';
+  els.checked.textContent = value;
+  els.checked.hidden = value.length === 0;
 }
 
 function clear(node) {
@@ -183,9 +258,7 @@ function providerCard(meta, events, zone) {
     ]),
     h('p', { class: 'meta', text: meta.lastSuccess ? `Last successful retrieval ${formatLondon(meta.lastSuccess, zone)} (${formatAge(meta.lastSuccess)})` : 'No successful retrieval' })
   ];
-  if (feedBlockedInBrowser(meta)) {
-    children.push(h('p', { class: 'meta', text: 'The browser cannot read this feed. This card uses the published snapshot from the collection job.' }));
-  } else if (meta.stale && meta.hasCache) {
+  if (!feedBlockedInBrowser(meta) && meta.stale && meta.hasCache) {
     children.push(h('p', { class: 'warning', text: `Stale data. Showing the cached feed from ${formatAge(meta.lastSuccess)}. ${meta.error || ''}`.trim() }));
   }
   if (!meta.hasCache) {
@@ -213,29 +286,20 @@ function render(status) {
   );
   const metas = Object.values(status.providers || {});
   const fresh = metas.filter((meta) => meta && !meta.stale && meta.hasCache);
-  const blocked = metas.filter((meta) => feedBlockedInBrowser(meta));
   const failed = metas.filter((meta) => meta && (meta.stale || !meta.hasCache) && !feedBlockedInBrowser(meta));
-  const blockedNote = blocked.map((meta) => `${meta.name} uses the published snapshot (${formatAge(meta.lastSuccess)})`).join('. ');
   if (state.freshness === 'pending') {
     els.updated.textContent = 'Refreshing provider feeds…';
-    if (els.checked) els.checked.textContent = 'Reading each provider feed from this browser.';
+    setChecked('');
   } else if (state.freshness === 'live' && fresh.length > 0) {
     els.updated.textContent = `Provider data collected: ${formatLondon(status.generatedAt, zone)} (${formatAge(status.generatedAt)})`;
-    if (els.checked) {
-      const read = failed.length || blocked.length
-        ? 'This browser read the other feeds just now.'
-        : 'This browser read the provider feeds just now.';
-      const problems = failed.length ? ` A saved snapshot is still in use for ${failed.map((meta) => meta.name).join(', ')}.` : '';
-      const published = blockedNote ? ` ${blockedNote}.` : '';
-      els.checked.textContent = `${read}${problems}${published}`;
-    }
+    setChecked(failed.length ? `A saved snapshot is still in use for ${failed.map((meta) => meta.name).join(', ')}.` : '');
   } else if (state.freshness === 'mock') {
     els.updated.textContent = `Mock data generated: ${formatLondon(status.generatedAt, zone)} (${formatAge(status.generatedAt)})`;
-    if (els.checked) els.checked.textContent = 'Mock scenarios are fictional and are not read from the providers.';
+    setChecked('Mock scenarios are fictional and are not read from the providers.');
   } else {
     const when = state.snapshotAt || status.generatedAt;
     els.updated.textContent = `Saved snapshot: ${formatLondon(when, zone)} (${formatAge(when)})`;
-    if (els.checked) els.checked.textContent = 'This browser tried the provider feeds just now and could not read them.';
+    setChecked('The provider feeds could not be read just now.');
   }
   els.schedule.textContent = 'Reload reads the provider feeds in this browser. A saved snapshot is used only when a feed cannot be reached.';
   clear(els.banners);
@@ -252,6 +316,7 @@ function render(status) {
   }
   clear(els.cards);
   for (const meta of providers) els.cards.append(providerCard(meta, events, zone));
+  renderAdvisories(status, zone);
   const current = sortIncidents(events.filter(isCurrentIncident));
   const maintenance = sortMaintenance(events.filter(isVisibleMaintenance));
   const resolved = sortIncidents(events.filter((event) => event.included && event.eventType === 'incident' && event.status === 'resolved'));
@@ -285,8 +350,9 @@ async function load() {
   try {
     const response = await fetch(`${file}?t=${Date.now()}`, { cache: 'no-store' });
     if (!response.ok) throw new Error(`Status file returned HTTP ${response.status}`);
-    const status = await response.json();
-    if (!status || !Array.isArray(status.events) || !status.providers) throw new Error('Status file has an unexpected shape');
+    const loaded = await response.json();
+    if (!loaded || !Array.isArray(loaded.events) || !loaded.providers) throw new Error('Status file has an unexpected shape');
+    const status = state.mode === 'live' ? withStoredAdvisories(loaded) : loaded;
     state.status = status;
     state.snapshotAt = status.generatedAt || null;
     state.freshness = state.mode === 'live' ? 'pending' : 'mock';
@@ -312,7 +378,7 @@ async function refreshFromProviders() {
   els.reload.disabled = true;
   state.freshness = 'pending';
   els.updated.textContent = 'Refreshing provider feeds…';
-  if (els.checked) els.checked.textContent = 'Reading each provider feed from this browser.';
+  setChecked('');
   try {
     const configResponse = await fetch(`config/providers.json?t=${Date.now()}`, { cache: 'no-store' });
     if (!configResponse.ok) throw new Error('Config could not be read');
@@ -321,33 +387,90 @@ async function refreshFromProviders() {
     if (published?.generatedAt) state.snapshotAt = published.generatedAt;
     const status = await collectStatus({
       config,
-      previous: withNewerPublishedProvider(state.status, published, 'azure'),
+      previous: withStoredAdvisories(withNewerPublishedProvider(state.status, published, 'azure')),
       env: {}
     });
+    rememberAdvisories(status);
     const freshCount = Object.values(status.providers).filter((meta) => !meta.stale && meta.hasCache).length;
     state.status = status;
     state.checkedAt = new Date().toISOString();
     state.freshness = freshCount > 0 ? 'live' : 'snapshot';
     render(status);
     const stale = Object.values(status.providers).filter((meta) => (meta.stale || !meta.hasCache) && !feedBlockedInBrowser(meta)).map((meta) => meta.name);
-    const blockedLive = Object.values(status.providers).filter((meta) => feedBlockedInBrowser(meta)).map((meta) => meta.name);
     const overall = els.overall.querySelector('.chip')?.textContent || 'Unknown';
-    const publishedLive = blockedLive.length ? ` ${blockedLive.join(', ')} uses the published snapshot.` : '';
     els.live.textContent = freshCount === 0
       ? 'The provider feeds could not be read. Showing the saved snapshot.'
       : stale.length
-        ? `Feeds refreshed just now. Overall status is ${overall}. A saved copy is still in use for ${stale.join(', ')}.${publishedLive}`
-        : `Feeds refreshed just now. Overall status is ${overall}.${publishedLive}`;
+        ? `Feeds refreshed just now. Overall status is ${overall}. A saved copy is still in use for ${stale.join(', ')}.`
+        : `Feeds refreshed just now. Overall status is ${overall}.`;
   } catch (error) {
     state.freshness = 'snapshot';
-    if (state.status) render(state.status);
-    else if (els.checked) els.checked.textContent = 'The provider feeds could not be refreshed. There is no saved snapshot.';
+    if (state.status) render(withStoredAdvisories(state.status) || state.status);
+    else setChecked('The provider feeds could not be refreshed. There is no saved snapshot.');
     els.live.textContent = 'The provider feeds could not be refreshed.';
     console.error(error?.message || 'refresh failed');
   } finally {
     refreshing = false;
     els.reload.disabled = false;
   }
+}
+
+function readAdvisoryStore() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(ADVISORY_STORE) || 'null');
+    if (!parsed || !Array.isArray(parsed.advisories)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function rememberAdvisories(status) {
+  if (!status || status.mock || !Array.isArray(status.advisories)) return;
+  if (status.advisoryFeed?.stale && status.advisories.length === 0) return;
+  localStorage.setItem(ADVISORY_STORE, JSON.stringify({
+    advisories: status.advisories,
+    lastSuccess: status.advisoryFeed?.lastSuccess || null
+  }));
+}
+
+function withStoredAdvisories(status) {
+  const stored = readAdvisoryStore();
+  const base = status && status.mock !== true ? status : null;
+  if (!stored && !base?.advisories) return base;
+  const advisories = retainCiscoAdvisories(base?.advisories || [], stored?.advisories || [], {
+    now: new Date(),
+    retentionDays: ADVISORY_DAYS
+  });
+  if (!base) {
+    return advisories.length ? {
+      mock: false,
+      advisories,
+      advisoryFeed: {
+        sourceLabel: 'Cisco PSIRT',
+        lastSuccess: stored?.lastSuccess || null,
+        stale: true,
+        error: null,
+        hasCache: true,
+        shownCount: advisories.length,
+        retentionDays: ADVISORY_DAYS
+      }
+    } : null;
+  }
+  if (!advisories.length && !(base.advisories || []).length) return base;
+  return {
+    ...base,
+    advisories,
+    advisoryFeed: base.advisoryFeed || {
+      sourceLabel: 'Cisco PSIRT',
+      lastSuccess: stored?.lastSuccess || null,
+      stale: true,
+      error: null,
+      hasCache: advisories.length > 0,
+      shownCount: advisories.length,
+      retentionDays: ADVISORY_DAYS
+    }
+  };
 }
 
 async function readSnapshot() {

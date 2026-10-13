@@ -32,7 +32,19 @@ function materialView(document) {
       excludedCount: meta.excludedCount,
       exclusionReasons: meta.exclusionReasons,
       warnings: meta.warnings
-    }]))
+    }])),
+    advisories: (document.advisories || []).map((item) => ({
+      id: item.id,
+      title: item.title,
+      cves: item.cves,
+      severity: item.severity,
+      publishedAt: item.publishedAt
+    })),
+    advisoryFeed: document.advisoryFeed ? {
+      stale: document.advisoryFeed.stale,
+      error: document.advisoryFeed.error,
+      shownCount: document.advisoryFeed.shownCount
+    } : null
   };
 }
 

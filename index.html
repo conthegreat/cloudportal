@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Cloud and Network Service Status</title>
   <meta name="description" content="Current incidents, degradation and planned maintenance for the configured cloud and network services.">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://azure.status.microsoft https://status.cloud.google.com https://status.aws.amazon.com https://www.cloudflarestatus.com https://status.umbrella.cisco.com https://api.synturastatus.io; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://azure.status.microsoft https://status.cloud.google.com https://status.aws.amazon.com https://ocistatus.oraclecloud.com https://www.cloudflarestatus.com https://status.umbrella.cisco.com https://status.wifi.service.gov.uk https://api.synturastatus.io https://sec.cloudapps.cisco.com; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="assets/styles.css">
 </head>
@@ -13,32 +13,40 @@
   <a class="skip" href="#main">Skip to content</a>
   <header class="site-header">
     <div class="wrap header-layout">
-      <div>
+      <div class="header-copy">
         <h1 id="dashboard-title">Cloud and Network Service Status</h1>
         <p class="lede">Incidents and maintenance filtered to the configured cloud and network services.</p>
+        <p id="updated">Refreshing provider feeds…</p>
+        <p id="checked">Refreshing provider feeds…</p>
+        <details class="header-tools">
+          <summary>Controls</summary>
+          <p id="schedule">Reload reads the provider feeds in this browser. A saved snapshot is used only when a feed cannot be reached.</p>
+          <div class="tool-row">
+            <button type="button" id="reload" class="button">Reload status data</button>
+            <div class="segment" role="group" aria-label="Data source">
+              <button type="button" id="show-live" class="button button-quiet" aria-pressed="true">Live feed</button>
+              <button type="button" id="show-mock" class="button button-quiet" aria-pressed="false">Preview mock scenarios</button>
+            </div>
+          </div>
+        </details>
       </div>
       <div class="header-status" id="overall" aria-live="polite"></div>
-    </div>
-    <div class="wrap header-tools">
-      <p id="updated">Refreshing provider feeds…</p>
-      <p id="checked">Refreshing provider feeds…</p>
-      <p id="schedule">Reload reads the provider feeds in this browser. A saved snapshot is used only when a feed cannot be reached.</p>
-      <div class="tool-row">
-        <button type="button" id="reload" class="button">Reload status data</button>
-        <div class="segment" role="group" aria-label="Data source">
-          <button type="button" id="show-live" class="button button-quiet" aria-pressed="true">Live feed</button>
-          <button type="button" id="show-mock" class="button button-quiet" aria-pressed="false">Preview mock scenarios</button>
-        </div>
-      </div>
     </div>
   </header>
   <main id="main" class="wrap">
     <p id="loading">Loading service status…</p>
     <div id="banners"></div>
-    <section aria-labelledby="providers-heading">
-      <h2 id="providers-heading">Providers</h2>
-      <div id="provider-cards" class="provider-grid"></div>
-    </section>
+    <div class="dashboard-split">
+      <section aria-labelledby="providers-heading">
+        <h2 id="providers-heading">Providers</h2>
+        <div id="provider-cards" class="provider-grid"></div>
+      </section>
+      <section aria-labelledby="advisories-heading">
+        <h2 id="advisories-heading">Cisco security advisories</h2>
+        <p id="advisory-note" class="section-note">Cisco PSIRT advisories from the last 7 days.</p>
+        <div id="advisories" class="advisory-list"></div>
+      </section>
+    </div>
     <section aria-labelledby="incidents-heading">
       <h2 id="incidents-heading">Current incidents</h2>
       <div id="incidents" class="event-list"></div>
@@ -66,8 +74,8 @@
   </footer>
   <div id="live" class="visually-hidden" aria-live="polite"></div>
   <noscript>
-    <p>This dashboard needs JavaScript to read the status file. You can still open the provider status pages: <a href="https://azure.status.microsoft/en-gb/status">Azure</a>, <a href="https://status.cloud.google.com/">Google Cloud</a>, <a href="https://health.aws.amazon.com/health/status">AWS</a>, <a href="https://status.umbrella.cisco.com/">Cisco Umbrella</a>, <a href="https://www.cloudflarestatus.com/">Cloudflare</a> and <a href="https://synturastatus.io/">Syntura</a>.</p>
+    <p>This dashboard needs JavaScript to read the status file. You can still open the provider status pages: <a href="https://azure.status.microsoft/en-gb/status">Azure</a>, <a href="https://status.cloud.google.com/">Google Cloud</a>, <a href="https://health.aws.amazon.com/health/status">AWS</a>, <a href="https://status.umbrella.cisco.com/">Cisco Umbrella</a>, <a href="https://www.cloudflarestatus.com/">Cloudflare</a>, <a href="https://ocistatus.oraclecloud.com/">Oracle Cloud</a>, <a href="https://status.wifi.service.gov.uk/">GovWifi</a> and <a href="https://synturastatus.io/">Syntura</a>.</p>
   </noscript>
-  <script type="module" src="assets/app.js?v=7"></script>
+  <script type="module" src="assets/app.js?v=12"></script>
 </body>
 </html>

@@ -1,3 +1,4 @@
+import { CISCO_ADVISORY_FEED, CISCO_ADVISORY_PAGE, retainCiscoAdvisories, retrieveCiscoAdvisories } from './advisories/cisco-psirt.js';
 import { decideInclusion } from './filter.js';
 import { createHttp } from './lib/http.js';
 import { publicError } from './lib/text.js';
@@ -27,6 +28,52 @@ export async function collectStatus({
     maintenanceLookAheadDays: config.maintenanceLookAheadDays
   };
   const enabled = PROVIDERS.filter((provider) => config.providers?.[provider.id]?.enabled);
+  const advisoryConfig = config.advisories?.cisco || { enabled: true };
+  const retentionDays = Number(advisoryConfig.retentionDays) > 0 ? Number(advisoryConfig.retentionDays) : 7;
+  const keepAdvisories = (incoming) => retainCiscoAdvisories(incoming, usablePrevious?.advisories, { now, retentionDays });
+  const advisoryTask = advisoryConfig.enabled === false
+    ? Promise.resolve(null)
+    : retrieveCiscoAdvisories({
+      http,
+      feedUrl: advisoryConfig.feedUrl || CISCO_ADVISORY_FEED
+    }).then((result) => {
+      const advisories = keepAdvisories(result.advisories);
+      return {
+        advisories,
+        feed: {
+          sourceLabel: result.sourceLabel,
+          feedUrl: advisoryConfig.feedUrl || CISCO_ADVISORY_FEED,
+          statusPageUrl: advisoryConfig.statusPageUrl || CISCO_ADVISORY_PAGE,
+          lastSuccess: now.toISOString(),
+          stale: false,
+          error: null,
+          hasCache: true,
+          rawCount: result.rawCount,
+          shownCount: advisories.length,
+          retentionDays
+        }
+      };
+    }).catch((error) => {
+      const message = publicError(error);
+      log(`[cisco-advisories] retrieval failed: ${message}`);
+      const advisories = keepAdvisories([]);
+      const previousFeed = usablePrevious?.advisoryFeed;
+      return {
+        advisories,
+        feed: {
+          sourceLabel: previousFeed?.sourceLabel || 'Cisco PSIRT',
+          feedUrl: advisoryConfig.feedUrl || CISCO_ADVISORY_FEED,
+          statusPageUrl: advisoryConfig.statusPageUrl || CISCO_ADVISORY_PAGE,
+          lastSuccess: previousFeed?.lastSuccess || null,
+          stale: true,
+          error: message,
+          hasCache: advisories.length > 0,
+          rawCount: previousFeed?.rawCount || 0,
+          shownCount: advisories.length,
+          retentionDays
+        }
+      };
+    });
   const settled = await Promise.all(enabled.map(async (provider) => {
     const providerConfig = config.providers[provider.id];
     try {
@@ -94,6 +141,7 @@ export async function collectStatus({
     events.push(...item.events);
   }
   events.sort((left, right) => String(left.id).localeCompare(String(right.id)));
+  const advisoryResult = await advisoryTask;
   return {
     schemaVersion: 1,
     mock: false,
@@ -106,6 +154,8 @@ export async function collectStatus({
     maintenanceLookAheadDays: config.maintenanceLookAheadDays,
     recentlyResolvedHours: config.recentlyResolvedHours,
     providers,
-    events
+    events,
+    advisories: advisoryResult?.advisories || [],
+    advisoryFeed: advisoryResult?.feed || null
   };
 }

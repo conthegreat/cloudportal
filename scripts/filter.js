@@ -7,6 +7,9 @@ const BADGE_LABELS = {
   'eu-west-2': 'London (eu-west-2)',
   'europe-west2': 'London (europe-west2)',
   lhr: 'London LHR',
+  'uk-london-1': 'UK South (London)',
+  'uk-cardiff-1': 'UK West (Newport)',
+  uk: 'UK',
   europe: 'Europe',
   eu: 'Europe',
   emea: 'Europe',
@@ -59,6 +62,8 @@ function regionReason(event, labels) {
   if (event.sourceProvider === 'aws') return `Affected AWS region: ${list}`;
   if (event.sourceProvider === 'gcp') return `Affected Google Cloud region: ${list}`;
   if (event.sourceProvider === 'cloudflare') return `Affected Cloudflare location: ${list}`;
+  if (event.sourceProvider === 'oracle') return `Affected Oracle Cloud region: ${list}`;
+  if (event.sourceProvider === 'govwifi') return 'GovWifi service';
   if (event.sourceProvider === 'ciscoUmbrella') return `Affected Cisco Umbrella scope: ${list}`;
   return `Affected location: ${list}`;
 }

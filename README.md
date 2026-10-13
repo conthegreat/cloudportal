@@ -9,12 +9,33 @@ Public feeds are labelled as public. They are not a personalised view of any sub
 ## What the page shows
 
 - Header status calculated only from events that passed the configured filter. The order is major outage, partial outage, degraded performance, maintenance, operational, then unknown or stale. A failed feed is not shown as operational.
-- One card each for Microsoft Azure, Google Cloud Platform, Amazon Web Services, Cisco Umbrella, Cloudflare, and Syntura, formerly hSo.
+- One card each for Microsoft Azure, Google Cloud Platform, Amazon Web Services, Oracle Cloud, Cisco Umbrella, Cloudflare, GovWifi, and Syntura, formerly hSo.
 - **Current incidents.**
 - **Current and upcoming maintenance** (30 days ahead by default).
 - Resolved events kept for 24 hours.
 - A disclosure of excluded events and the reason each one was dropped.
+- The newest Cisco security advisories that name a CVE, from the Cisco PSIRT RSS feed. These do not change the overall status.
 - Times on screen in Europe/London, shown as GMT or BST. Stored timestamps are ISO 8601 UTC.
+
+## Sources
+
+Each row is an official feed. The page does not use a CORS proxy. A feed the browser is not allowed to read is taken from the published snapshot instead.
+
+| What you see | Where it comes from | Format | Read by |
+| --- | --- | --- | --- |
+| Azure card | `https://azure.status.microsoft/en-gb/status/feed/` | RSS | Collection job. The browser is not allowed to read this host. Label: **Public Azure Status**. |
+| Azure card, when secrets are set | `https://management.azure.com/subscriptions/{id}/providers/Microsoft.ResourceHealth/events?api-version=2025-05-01` | JSON | Collection job only. Label: **Azure Service Health**. |
+| Google Cloud card | `https://status.cloud.google.com/incidents.json` | JSON | Browser and collection job. Label: **Public Google Cloud Status**. |
+| Google Cloud card, when a token is set | `https://servicehealth.googleapis.com/v1/projects/{project}/locations/global/events` | JSON | Collection job only. Label: **Google Cloud Service Health**. |
+| AWS card | `https://status.aws.amazon.com/rss/all.rss` | RSS | Browser and collection job. Label: **Public AWS Health**. Account-specific AWS Health is not connected. |
+| Oracle Cloud card | `https://ocistatus.oraclecloud.com/api/v2/incident-summary.rss` and `https://ocistatus.oraclecloud.com/api/v2/components.json` | RSS and JSON | Browser and collection job. Label: **OCI Status**. UK South (London) and UK West (Newport), plus an event the feed marks as global. |
+| Cisco Umbrella card | `https://status.umbrella.cisco.com/api/v2/summary.json`, then components, unresolved incidents, incident history, and active and upcoming maintenance | JSON | Browser and collection job. Label: **Cisco Umbrella status**. This is not the Cisco product-security feed. |
+| Cloudflare card | `https://www.cloudflarestatus.com/api/v2/summary.json`, then the same Statuspage paths as Cisco Umbrella | JSON | Browser and collection job. Label: **Cloudflare Status API**. |
+| GovWifi card | `https://status.wifi.service.gov.uk/api/v2/summary.json`, then the same Statuspage paths | JSON | Browser and collection job. Label: **GovWifi status**. The status page has no regional data centres, so the UK service is in scope. |
+| Syntura card | `https://api.synturastatus.io/data` | JSON | Browser and collection job. The public page is `https://synturastatus.io/`. Label: **Syntura status**. |
+| Cisco security advisories | `https://sec.cloudapps.cisco.com/security/center/psirtrss20/CiscoSecurityAdvisory.xml` | RSS | Browser and collection job. The list page is `https://sec.cloudapps.cisco.com/security/center/publicationListing.x`. |
+
+Cisco Umbrella status and Cisco PSIRT advisories are different feeds. Umbrella is service health for the configured regions. PSIRT is product security advisories for Cisco as a whole. The advisory list keeps items that name a CVE and drops advance notifications. A new advisory stays on the screen for 7 days (`advisories.cisco.retentionDays`). The page remembers that week in the browser, so a refresh does not clear it when the RSS read fails. The feed timestamp has no timezone, so it is read as UTC and shown in Europe/London.
 
 **Reload status data** reads the provider feeds again. It does not stop at the saved snapshot. The collection time in the header is the time of that browser read. A provider that cannot be read keeps its snapshot and is marked stale. The header does not call that a fresh collection of every feed.
 
@@ -94,8 +115,12 @@ Mock scenarios:
 8. Cloudflare London (LHR) maintenance (included).
 9. Cloudflare Singapore-only maintenance (excluded).
 10. Syntura planned maintenance (included).
-11. Google Cloud feed stale, with cached europe-west2 data.
-12. A mock-only provider with no cached data, shown as unknown.
+11. Oracle Cloud UK South (London) degradation (included).
+12. Oracle Cloud US East (Ashburn) incident (excluded).
+13. Oracle Cloud global incident (included).
+14. GovWifi planned maintenance (included).
+15. Google Cloud feed stale, with cached europe-west2 data.
+16. A mock-only provider with no cached data, shown as unknown.
 
 A resolved UK West incident inside 24 hours and an older UK South incident outside 24 hours are also in the mock file, so the retention rule can be seen.
 
@@ -116,7 +141,7 @@ Edit `config/providers.json`.
 | `blockedRegions`, `blockedLocations` | Drop an event that is limited to these places. |
 | `syntura.includeWhenUnconfigured` | When the Syntura allow-lists are both empty, published Syntura events are included and badged **Allow-list not set**. Fill `allowedServices` or `allowedLocations` and only matches remain. |
 
-Azure regions in config are `uksouth` and `ukwest`. AWS is `eu-west-2`. Google Cloud is `europe-west2`. Cloudflare London is `LHR`.
+Azure regions in config are `uksouth` and `ukwest`. AWS is `eu-west-2`. Google Cloud is `europe-west2`. Oracle Cloud is `uk-london-1` (UK South, London) and `uk-cardiff-1` (UK West, Newport). Cloudflare London is `LHR`. GovWifi uses `uk` because that status page does not split the service by data centre.
 
 An event is included when a structured region or component matches an allowed value, when it is explicitly global, or when it covers several places and at least one is allowed. It is excluded when it is limited to blocked or unrelated places, when it matches no configured scope, or when it is resolved outside the retention window. A missing location is **Unspecified**. It is not treated as global. Each event stores `included`, `inclusionReason`, `matchedRegions` and `matchedComponents`.
 
@@ -126,7 +151,7 @@ An event is included when a structured region or component matches an allowed va
 
 `.github/workflows/deploy-without-commit.yml` is the live publisher. It runs on `workflow_dispatch` and at minutes 7, 22, 37 and 52 of each hour. GitHub often never creates runs for a `*/5` schedule, and it can start a scheduled run later than the cron time. It may also pause schedules after 60 days without a repository commit.
 
-The job fetches every provider and deploys the site. It does not commit `data/status.json`. It passes `--publish`, so the saved snapshot gets a new collection time even when the incidents have not changed. **Reload status data** reads the provider feeds in the browser, and the page does the same when it opens and about every 5 minutes after that. Azure’s public RSS feed does not allow browser requests. That card uses the published snapshot and says so. It is not listed as a failed feed. On each refresh the page reads `data/status.json` again and keeps the Azure snapshot when the published copy is newer.
+The job fetches every provider and deploys the site. It does not commit `data/status.json`. It passes `--publish`, so the saved snapshot gets a new collection time even when the incidents have not changed. **Reload status data** reads the provider feeds in the browser, and the page does the same when it opens and about every 5 minutes after that. Azure’s public RSS feed does not allow browser requests. That card uses the published snapshot. It is not listed as a failed feed. On each refresh the page reads `data/status.json` again and keeps the Azure snapshot when the published copy is newer.
 
 `.github/workflows/update-status.yml` is manual. Run it when the copy of `data/status.json` in the repository should be updated. It commits only when the events or provider errors change, so a timestamp by itself does not create a commit. Permission is `contents: write`. One failed provider keeps that provider’s previous events, marks it stale, and lets the others update. The commit identity is `github-actions[bot]`. The workflow does not print secrets.
 
@@ -178,9 +203,12 @@ Account-specific AWS Health is not part of this version. A later EventBridge or 
 | Azure | `https://azure.status.microsoft/en-gb/status/feed/` | Public Azure Status |
 | Google Cloud | `https://status.cloud.google.com/incidents.json` | Public Google Cloud Status |
 | AWS | `https://status.aws.amazon.com/rss/all.rss` | Public AWS Health |
+| Oracle Cloud | `https://ocistatus.oraclecloud.com/api/v2/incident-summary.rss` and the region health report | OCI Status |
 | Cisco Umbrella | `https://status.umbrella.cisco.com/api/v2/summary.json` plus the related Statuspage JSON paths | Cisco Umbrella status |
 | Cloudflare | `https://www.cloudflarestatus.com/api/v2/summary.json` plus the related Statuspage JSON paths | Cloudflare Status API |
+| GovWifi | `https://status.wifi.service.gov.uk/api/v2/summary.json` plus the related Statuspage JSON paths | GovWifi status |
 | Syntura, formerly hSo | `https://api.synturastatus.io/data` | Syntura status |
+| Cisco security advisories | `https://sec.cloudapps.cisco.com/security/center/psirtrss20/CiscoSecurityAdvisory.xml` | Cisco PSIRT RSS. Shown beside the provider cards, not as a status card. |
 
 ## Integrations that need authentication
 
@@ -204,6 +232,10 @@ Cisco Umbrella, Cloudflare and Syntura use public status APIs. No extra secret i
 
 **Cisco Umbrella.** The collector uses the Umbrella status page at `status.umbrella.cisco.com`. It does not read `status.sse.cisco.com` (Secure Access). Secure Connect and CloudLock items are dropped unless the event also names Umbrella. “Global”, “Europe”, “EU”, “EMEA” and “Umbrella Global” can include an event. A blocked region does not exclude an event that is also global or European. The word “global” inside Statuspage boilerplate can match; check the exclusion log if a component looks too broad. Other Cisco products are out of scope until their status source is added to config and the adapter.
 
+**Oracle Cloud.** The public board is [OCI Status](https://ocistatus.oraclecloud.com/). Current service health comes from `components.json`. Incident history comes from `incident-summary.rss`. UK South (London), including the multicloud London region, maps to `uk-london-1`. UK West (Newport), including the older Cardiff name and the multicloud Newport region, maps to `uk-cardiff-1`. Other regions are excluded. “Multiple Regions” is not treated as global by itself. An event is global only when the feed says all regions, worldwide, globally, or a global issue. A multiple-region item that names only places outside the UK is excluded.
+
+**GovWifi.** The public board is [GovWifi status](https://status.wifi.service.gov.uk/). It is a Statuspage feed and it does not list regional data centres. Every incident and maintenance item on that board is the UK service.
+
 **Cloudflare.** Filtering uses Statuspage component names and groups, not the title alone. A trailing `(LHR)` code is London. Geographic components such as China Network are regions, including when they sit in the “Cloudflare Sites and Services” group, so they are not treated as global. If any data centre or geography is listed and none of it is allowed, attached product components do not make the event global. A continent group on its own is outside the configured scope. Platform components with no location, including DNS, CDN, network, Zero Trust, Access, WAF, WARP and Cloudflare One, can be included as global.
 
 **Syntura.** `https://synturastatus.io/` is a single-page app. The collector calls `https://api.synturastatus.io/data`, which is the JSON endpoint the official app loads. Syntura does not publish a stable contract for that URL, so the path can change and the adapter will then fail closed: the last good Syntura events stay, marked stale. Only the first page is requested. Staff fields (`adminuser`, names and hashes) are discarded. Device names that Syntura puts in the public title are kept. The source link is the status site, not an invented per-item URL. With empty allow-lists, events are included until `allowedServices` or `allowedLocations` is filled in.
@@ -218,14 +250,14 @@ Cisco Umbrella, Cloudflare and Syntura use public status APIs. No extra secret i
 node --test tests/
 ```
 
-The tests cover the region rules for all six providers, retention, the maintenance look-ahead, mock include and exclude flags, stale and empty-cache status, RSS parsing, and removal of Syntura staff fields. They do not call the network.
+The tests cover the region rules for all eight providers, retention, the maintenance look-ahead, mock include and exclude flags, stale and empty-cache status, RSS parsing, and removal of Syntura staff fields. They do not call the network.
 
 ## Security
 
 - No provider credentials in the site, the config file, or the committed JSON.
 - Provider text is written with `textContent`. The page does not use `innerHTML` for feed content. HTML in summaries is stripped before it is stored.
 - External links use `rel="noopener noreferrer"` and an `http` or `https` URL check.
-- The page sets a Content Security Policy. `connect-src` allows only this site and the official provider feed hosts: `azure.status.microsoft`, `status.cloud.google.com`, `status.aws.amazon.com`, `www.cloudflarestatus.com`, `status.umbrella.cisco.com` and `api.synturastatus.io`. There is no CORS proxy.
+- The page sets a Content Security Policy. `connect-src` allows only this site and the official feed hosts: `azure.status.microsoft`, `status.cloud.google.com`, `status.aws.amazon.com`, `ocistatus.oraclecloud.com`, `www.cloudflarestatus.com`, `status.umbrella.cisco.com`, `status.wifi.service.gov.uk`, `api.synturastatus.io` and `sec.cloudapps.cisco.com`. There is no CORS proxy.
 - Collector requests time out after 20 seconds and reject bodies over 8 MB. Malformed JSON and XML fail that provider only.
 - GitHub Actions are pinned to commit SHAs. Workflow permissions are limited to the job.
 
