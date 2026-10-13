@@ -35,7 +35,7 @@ body {
 }
 
 .wrap {
-  width: min(1480px, calc(100% - 2rem));
+  width: calc(100% - 2rem);
   margin-inline: auto;
 }
 
@@ -185,14 +185,14 @@ h2 { margin: 1.6rem 0 0.8rem; font-size: 1.35rem; }
 
 .provider-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
   gap: 0.9rem;
 }
 
 .advisory-list {
   display: grid;
   gap: 0.55rem;
-  max-height: min(70vh, 720px);
+  max-height: calc(100vh - 11rem);
   overflow: auto;
 }
 
@@ -327,53 +327,6 @@ summary { cursor: pointer; font-weight: 700; min-height: 44px; display: flex; al
   .header-status { width: auto; }
   .dashboard-split, .provider-grid, .facts { grid-template-columns: 1fr; }
   .card-top { flex-direction: column; }
-}
-
-@media (min-width: 901px) and (max-width: 1100px) {
-  .provider-grid { grid-template-columns: 1fr 1fr; }
-}
-
-/* Four 50-inch screens report one wide display, about 3840px.
-   A normal monitor stays on the rules above. */
-@media (min-width: 3000px) {
-  .wrap { width: calc(100% - 3rem); }
-
-  main.wrap {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    column-gap: 1.5rem;
-    row-gap: 0.4rem;
-    align-items: start;
-  }
-
-  #banners:empty { display: none; }
-  #banners:not(:empty) { grid-column: 1 / -1; }
-
-  .dashboard-split { display: contents; }
-
-  .dashboard-split > section:first-child { grid-column: 1 / -1; }
-
-  .provider-grid { grid-template-columns: repeat(8, minmax(0, 1fr)); }
-
-  .dashboard-split > section:last-child {
-    grid-column: 2;
-    grid-row: 2 / span 3;
-    display: flex;
-    flex-direction: column;
-    min-height: 100%;
-  }
-
-  .advisory-list {
-    flex: 1 1 auto;
-    max-height: calc(100vh - 18rem);
-    overflow: auto;
-  }
-
-  section[aria-labelledby="incidents-heading"],
-  section[aria-labelledby="maintenance-heading"],
-  section[aria-labelledby="resolved-heading"] { grid-column: 1; }
-
-  section[aria-labelledby="filter-heading"] { grid-column: 1 / -1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
