@@ -7,9 +7,9 @@ name: Refresh published status
 
 on:
   schedule:
-    # Four times an hour, off the top of the hour. GitHub has not been
+    # Eight times an hour, off the top of the hour. GitHub has not been
     # creating runs for a */5 schedule, and each run publishes the site.
-    - cron: '7,22,37,52 * * * *'
+    - cron: '7,14,22,29,37,44,52,59 * * * *'
   workflow_dispatch:
 
 permissions:

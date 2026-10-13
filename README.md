@@ -131,7 +131,7 @@ Edit `config/providers.json`.
 | Field | Meaning |
 | --- | --- |
 | `dashboardTitle`, `organisation`, `timeZone` | Page identity. The collector stores the time zone; the page formats times in Europe/London. |
-| `refreshMinutes` | Intended collection interval. The workflow cron is `*/5 * * * *`. |
+| `refreshMinutes` | How often an open page reads the feeds it can reach. Default 5 minutes. The published snapshot, which Azure uses, is refreshed by the workflow schedule. |
 | `maintenanceLookAheadDays` | Upcoming maintenance window. Default 30. In-progress maintenance is kept even if it started earlier. |
 | `recentlyResolvedHours` | How long a resolved or completed event stays on the page. Default 24. |
 | `mockData` | Must stay `false` for the live collector. |
@@ -149,7 +149,7 @@ An event is included when a structured region or component matches an allowed va
 
 ### Scheduled collection
 
-`.github/workflows/deploy-without-commit.yml` is the live publisher. It runs on `workflow_dispatch` and at minutes 7, 22, 37 and 52 of each hour. GitHub often never creates runs for a `*/5` schedule, and it can start a scheduled run later than the cron time. It may also pause schedules after 60 days without a repository commit.
+`.github/workflows/deploy-without-commit.yml` is the live publisher. It runs on `workflow_dispatch` and at minutes 7, 14, 22, 29, 37, 44, 52 and 59 of each hour. GitHub often never creates runs for a `*/5` schedule, and it can start a scheduled run later than the cron time. It may also pause schedules after 60 days without a repository commit.
 
 The job fetches every provider and deploys the site. It does not commit `data/status.json`. It passes `--publish`, so the saved snapshot gets a new collection time even when the incidents have not changed. **Reload status data** reads the provider feeds in the browser, and the page does the same when it opens and about every 5 minutes after that. Azure’s public RSS feed does not allow browser requests. That card uses the published snapshot. It is not listed as a failed feed. On each refresh the page reads `data/status.json` again and keeps the Azure snapshot when the published copy is newer.
 
