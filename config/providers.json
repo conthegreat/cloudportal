@@ -118,6 +118,12 @@
       "retentionDays": 7,
       "statusPageUrl": "https://sec.cloudapps.cisco.com/security/center/publicationListing.x",
       "feedUrl": "https://sec.cloudapps.cisco.com/security/center/psirtrss20/CiscoSecurityAdvisory.xml"
+    },
+    "checkpoint": {
+      "enabled": true,
+      "retentionDays": 30,
+      "statusPageUrl": "https://support.checkpoint.com/security-advisories",
+      "feedUrl": "https://iapi-services-ucs.checkpoint.com/public/api/support-center-mms/api/securityAdvisories/getAllActive"
     }
   }
 }

@@ -14,6 +14,8 @@ import { classifyCloudflareEvent } from '../scripts/providers/cloudflare.js';
 import { classifyGcpIncident, classifyGcpPersonalizedEvent } from '../scripts/providers/gcp.js';
 import { buildComponentIndex } from '../scripts/providers/statuspage.js';
 import { classifyCiscoAdvisory, retainCiscoAdvisories, selectCiscoAdvisories } from '../scripts/advisories/cisco-psirt.js';
+import { classifyCheckpointAdvisory, retainCheckpointAdvisories } from '../scripts/advisories/checkpoint.js';
+import { collectStatus } from '../scripts/collect.js';
 import { classifyGovWifiEvent } from '../scripts/providers/govwifi.js';
 import { classifyOracleHealthReport, classifyOracleRssItem } from '../scripts/providers/oracle.js';
 import { classifySynturaItem } from '../scripts/providers/syntura.js';
@@ -155,6 +157,7 @@ test('Cisco PSIRT items keep CVE advisories and drop advance notices', () => {
   assert.deepEqual(selected[0].cves, ['CVE-2026-76471']);
   assert.equal(selected[0].publishedAt, '2026-10-08T14:11:23Z');
   assert.equal(selected[0].url, 'https://sec.cloudapps.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-example');
+  assert.equal(selected[0].source, 'cisco');
   assert.equal(classifyCiscoAdvisory({ title: '' }), null);
 });
 
@@ -164,7 +167,8 @@ test('Cisco advisories stay for seven days and a failed read does not drop them'
   const weekOld = { id: 'week', title: 'Still in the week', publishedAt: '2026-10-06T12:00:00.000Z', cves: ['CVE-2026-10002'] };
   const expired = { id: 'old', title: 'Expired', publishedAt: '2026-10-05T12:00:00.000Z', cves: ['CVE-2026-10003'] };
   const incoming = { id: 'new', title: 'Published today', publishedAt: '2026-10-13T08:00:00.000Z', cves: ['CVE-2026-10004'] };
-  const kept = retainCiscoAdvisories([incoming], [recent, weekOld, expired], { now, retentionDays: 7 });
+  const checkpoint = { id: 'checkpoint:1', source: 'checkpoint', title: 'CVE-2026-1', publishedAt: '2026-10-12T09:00:00.000Z', cves: ['CVE-2026-1'] };
+  const kept = retainCiscoAdvisories([incoming], [recent, weekOld, expired, checkpoint], { now, retentionDays: 7 });
   assert.deepEqual(kept.map((item) => item.id), ['new', 'recent', 'week']);
   const afterFailure = retainCiscoAdvisories([], kept, { now, retentionDays: 7 });
   assert.deepEqual(afterFailure.map((item) => item.id), ['new', 'recent', 'week']);
@@ -527,4 +531,136 @@ test('Syntura drops staff fields and honours a later allow-list', () => {
     includeWhenUnconfigured: true
   }, settings);
   assert.equal(restricted.included, false);
+});
+
+test('Check Point advisories keep a CVE for 30 days and a failed read does not drop it', () => {
+  const now = new Date('2026-10-15T12:00:00.000Z');
+  const recent = classifyCheckpointAdvisory({
+    id: 194,
+    cvss: 9.8,
+    cpSeverity: 'Critical',
+    summary: 'Directory traversal on Management Server',
+    url: 'https://support.checkpoint.com/results/sk/sk1000171',
+    published: Date.parse('2026-09-22T08:32:28.000Z'),
+    enable: true,
+    cveId: 'CVE-2026-93616'
+  });
+  assert.equal(recent.source, 'checkpoint');
+  assert.equal(recent.severity, 'critical');
+  assert.equal(recent.publishedAt, '2026-09-22T08:32:28.000Z');
+  assert.equal(recent.url, 'https://support.checkpoint.com/results/sk/sk1000171');
+  const older = { ...recent, id: 'checkpoint:old', publishedAt: '2026-08-01T00:00:00.000Z', cves: ['CVE-2026-1'], title: 'CVE-2026-1' };
+  const kept = retainCheckpointAdvisories([], [recent, older], { now, retentionDays: 30 });
+  assert.deepEqual(kept.map((item) => item.id), ['checkpoint:194']);
+  const afterFailure = retainCheckpointAdvisories([], kept, { now, retentionDays: 30 });
+  assert.deepEqual(afterFailure.map((item) => item.id), ['checkpoint:194']);
+  assert.equal(classifyCheckpointAdvisory({ id: 1, cveId: '', published: now.getTime(), enable: true }), null);
+  assert.equal(classifyCheckpointAdvisory({ id: 2, cveId: 'CVE-2026-2', published: now.getTime(), enable: false, cpSeverity: 'High' }), null);
+});
+
+test('a browser refresh keeps Check Point advisories from the snapshot', async () => {
+  const calls = [];
+  const http = {
+    async text(url) {
+      calls.push(url);
+      throw new Error('Cisco was disabled');
+    },
+    async json(url) {
+      calls.push(url);
+      throw new Error('The browser must not request Check Point');
+    }
+  };
+  const previous = {
+    mock: false,
+    advisories: [{
+      id: 'checkpoint:194',
+      source: 'checkpoint',
+      title: 'CVE-2026-93616',
+      url: 'https://support.checkpoint.com/results/sk/sk1000171',
+      cves: ['CVE-2026-93616'],
+      severity: 'critical',
+      publishedAt: '2026-09-22T08:32:28.000Z',
+      summary: 'Directory traversal on Management Server'
+    }],
+    checkpointFeed: {
+      sourceLabel: 'Check Point advisories',
+      lastSuccess: '2026-10-15T11:00:00.000Z',
+      stale: false,
+      error: null,
+      hasCache: true,
+      shownCount: 1,
+      retentionDays: 30
+    }
+  };
+  const status = await collectStatus({
+    config: {
+      ...config,
+      providers: {},
+      advisories: {
+        cisco: { enabled: false },
+        checkpoint: { enabled: true, retentionDays: 30 }
+      }
+    },
+    previous,
+    now: new Date('2026-10-15T12:00:00.000Z'),
+    http,
+    readCheckpoint: false,
+    log: () => {}
+  });
+  assert.deepEqual(calls, []);
+  assert.equal(status.advisories.length, 1);
+  assert.equal(status.advisories[0].title, 'CVE-2026-93616');
+  assert.equal(status.checkpointFeed.lastSuccess, '2026-10-15T11:00:00.000Z');
+  assert.equal(status.checkpointFeed.stale, false);
+});
+
+test('the collection job reads Check Point JSON and drops advisories outside 30 days', async () => {
+  const now = new Date('2026-10-15T12:00:00.000Z');
+  const http = {
+    async text() {
+      throw new Error('Cisco was disabled');
+    },
+    async json() {
+      return [
+        {
+          id: 194,
+          cpSeverity: 'Critical',
+          summary: 'Directory traversal on Management Server',
+          url: 'https://support.checkpoint.com/results/sk/sk1000171',
+          published: Date.parse('2026-09-22T08:32:28.000Z'),
+          enable: true,
+          cveId: 'CVE-2026-93616'
+        },
+        {
+          id: 10,
+          cpSeverity: 'Low',
+          summary: 'Old advisory',
+          url: 'https://support.checkpoint.com/results/sk/sk1',
+          published: Date.parse('2026-08-01T00:00:00.000Z'),
+          enable: true,
+          cveId: 'CVE-2026-100'
+        }
+      ];
+    }
+  };
+  const status = await collectStatus({
+    config: {
+      ...config,
+      providers: {},
+      advisories: {
+        cisco: { enabled: false },
+        checkpoint: { enabled: true, retentionDays: 30, feedUrl: 'https://example.test/checkpoint' }
+      }
+    },
+    now,
+    http,
+    readCheckpoint: true,
+    log: () => {}
+  });
+  assert.equal(status.advisories.length, 1);
+  assert.equal(status.advisories[0].cves[0], 'CVE-2026-93616');
+  assert.equal(status.checkpointFeed.stale, false);
+  assert.equal(status.checkpointFeed.rawCount, 2);
+  assert.equal(status.checkpointFeed.shownCount, 1);
+  assert.equal(status.events.length, 0);
 });

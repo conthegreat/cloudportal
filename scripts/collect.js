@@ -1,3 +1,4 @@
+import { CHECKPOINT_ADVISORY_FEED, CHECKPOINT_ADVISORY_PAGE, retainCheckpointAdvisories, retrieveCheckpointAdvisories } from './advisories/checkpoint.js';
 import { CISCO_ADVISORY_FEED, CISCO_ADVISORY_PAGE, retainCiscoAdvisories, retrieveCiscoAdvisories } from './advisories/cisco-psirt.js';
 import { decideInclusion } from './filter.js';
 import { createHttp } from './lib/http.js';
@@ -13,13 +14,41 @@ function reasonCounts(events) {
   return counts;
 }
 
+function advisoriesBySource(advisories) {
+  const cisco = [];
+  const checkpoint = [];
+  for (const item of advisories || []) {
+    if (item?.source === 'checkpoint') checkpoint.push(item);
+    else if (item) cisco.push(item);
+  }
+  return { cisco, checkpoint };
+}
+
+function checkpointFeedFrom(config, advisories, previousFeed, now, { stale, error, rawCount }) {
+  const checkpointConfig = config.advisories?.checkpoint || {};
+  const retentionDays = Number(checkpointConfig.retentionDays) > 0 ? Number(checkpointConfig.retentionDays) : 30;
+  return {
+    sourceLabel: previousFeed?.sourceLabel || 'Check Point advisories',
+    feedUrl: checkpointConfig.feedUrl || CHECKPOINT_ADVISORY_FEED,
+    statusPageUrl: checkpointConfig.statusPageUrl || CHECKPOINT_ADVISORY_PAGE,
+    lastSuccess: stale ? (previousFeed?.lastSuccess || null) : now.toISOString(),
+    stale,
+    error,
+    hasCache: advisories.length > 0,
+    rawCount: rawCount ?? previousFeed?.rawCount ?? 0,
+    shownCount: advisories.length,
+    retentionDays
+  };
+}
+
 export async function collectStatus({
   config,
   previous = null,
   env = {},
   log = () => {},
   now = new Date(),
-  http = createHttp()
+  http = createHttp(),
+  readCheckpoint
 } = {}) {
   const usablePrevious = previous && previous.mock !== true ? previous : null;
   const settings = {
@@ -28,9 +57,10 @@ export async function collectStatus({
     maintenanceLookAheadDays: config.maintenanceLookAheadDays
   };
   const enabled = PROVIDERS.filter((provider) => config.providers?.[provider.id]?.enabled);
+  const stored = advisoriesBySource(usablePrevious?.advisories);
   const advisoryConfig = config.advisories?.cisco || { enabled: true };
   const retentionDays = Number(advisoryConfig.retentionDays) > 0 ? Number(advisoryConfig.retentionDays) : 7;
-  const keepAdvisories = (incoming) => retainCiscoAdvisories(incoming, usablePrevious?.advisories, { now, retentionDays });
+  const keepAdvisories = (incoming) => retainCiscoAdvisories(incoming, stored.cisco, { now, retentionDays });
   const advisoryTask = advisoryConfig.enabled === false
     ? Promise.resolve(null)
     : retrieveCiscoAdvisories({
@@ -74,6 +104,51 @@ export async function collectStatus({
         }
       };
     });
+  const checkpointConfig = config.advisories?.checkpoint || { enabled: true };
+  const checkpointDays = Number(checkpointConfig.retentionDays) > 0 ? Number(checkpointConfig.retentionDays) : 30;
+  const keepCheckpoint = (incoming) => retainCheckpointAdvisories(incoming, stored.checkpoint, { now, retentionDays: checkpointDays });
+  const readCheckpointHere = (readCheckpoint ?? typeof window === 'undefined') && checkpointConfig.enabled !== false;
+  const checkpointTask = checkpointConfig.enabled === false
+    ? Promise.resolve({ advisories: [], feed: null })
+    : !readCheckpointHere
+      ? Promise.resolve().then(() => {
+        const advisories = keepCheckpoint([]);
+        const previousFeed = usablePrevious?.checkpointFeed || null;
+        return {
+          advisories,
+          feed: previousFeed ? {
+            ...previousFeed,
+            shownCount: advisories.length,
+            hasCache: advisories.length > 0 || previousFeed.hasCache === true
+          } : null
+        };
+      })
+      : retrieveCheckpointAdvisories({
+        http,
+        feedUrl: checkpointConfig.feedUrl || CHECKPOINT_ADVISORY_FEED
+      }).then((result) => {
+        const advisories = keepCheckpoint(result.advisories);
+        return {
+          advisories,
+          feed: checkpointFeedFrom(config, advisories, null, now, {
+            stale: false,
+            error: null,
+            rawCount: result.rawCount
+          })
+        };
+      }).catch((error) => {
+        const message = publicError(error);
+        log(`[checkpoint-advisories] retrieval failed: ${message}`);
+        const advisories = keepCheckpoint([]);
+        return {
+          advisories,
+          feed: checkpointFeedFrom(config, advisories, usablePrevious?.checkpointFeed, now, {
+            stale: true,
+            error: message,
+            rawCount: usablePrevious?.checkpointFeed?.rawCount || 0
+          })
+        };
+      });
   const settled = await Promise.all(enabled.map(async (provider) => {
     const providerConfig = config.providers[provider.id];
     try {
@@ -141,7 +216,9 @@ export async function collectStatus({
     events.push(...item.events);
   }
   events.sort((left, right) => String(left.id).localeCompare(String(right.id)));
-  const advisoryResult = await advisoryTask;
+  const [advisoryResult, checkpointResult] = await Promise.all([advisoryTask, checkpointTask]);
+  const advisories = [...(advisoryResult?.advisories || []), ...(checkpointResult?.advisories || [])]
+    .sort((left, right) => String(right.publishedAt || '').localeCompare(String(left.publishedAt || '')));
   return {
     schemaVersion: 1,
     mock: false,
@@ -155,7 +232,8 @@ export async function collectStatus({
     recentlyResolvedHours: config.recentlyResolvedHours,
     providers,
     events,
-    advisories: advisoryResult?.advisories || [],
-    advisoryFeed: advisoryResult?.feed || null
+    advisories,
+    advisoryFeed: advisoryResult?.feed || null,
+    checkpointFeed: checkpointResult?.feed || null
   };
 }

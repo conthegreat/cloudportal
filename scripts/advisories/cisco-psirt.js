@@ -40,6 +40,7 @@ export function classifyCiscoAdvisory(item) {
   const summary = plainDescription(item.description).slice(0, 180);
   return {
     id: url || `${item.title}|${item.pubDate || ''}`,
+    source: 'cisco',
     title: item.title.trim(),
     url,
     cves,
@@ -63,7 +64,7 @@ export function retainCiscoAdvisories(incoming, previous, { now = new Date(), re
   const cutoff = now.getTime() - days * 864e5;
   const byId = new Map();
   for (const item of [...(previous || []), ...(incoming || [])]) {
-    if (!item?.id || !item.publishedAt) continue;
+    if (!item?.id || !item.publishedAt || item.source === 'checkpoint') continue;
     const when = Date.parse(item.publishedAt);
     if (Number.isNaN(when) || when < cutoff) continue;
     byId.set(item.id, item);

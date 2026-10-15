@@ -189,11 +189,21 @@ h2 { margin: 1.6rem 0 0.8rem; font-size: 1.35rem; }
   gap: 0.9rem;
 }
 
+.advisory-column {
+  display: grid;
+  align-content: start;
+  gap: 1.35rem;
+  max-height: calc(100vh - 11rem);
+  overflow: auto;
+}
+
+.advisory-column h2 { margin: 0; font-size: 1.2rem; }
+
+.advisory-group .section-note { margin: 0.15rem 0 0.55rem; }
+
 .advisory-list {
   display: grid;
   gap: 0.55rem;
-  max-height: calc(100vh - 11rem);
-  overflow: auto;
 }
 
 .advisory {
@@ -211,10 +221,12 @@ h2 { margin: 1.6rem 0 0.8rem; font-size: 1.35rem; }
 .advisory[data-severity="low"],
 .advisory[data-severity="unrated"] { border-left-color: var(--unknown-fg); }
 
-.advisory h3 { font-size: 0.98rem; }
+.advisory h3 { font-size: 0.98rem; margin: 0; }
 .advisory h3 a { color: inherit; text-decoration: none; }
 .advisory h3 a:hover { text-decoration: underline; }
 .advisory-top { display: flex; justify-content: space-between; gap: 0.6rem; align-items: flex-start; }
+.advisory-summary { margin: 0.35rem 0 0; color: var(--muted); font-size: 0.92rem; }
+.advisory .meta { margin: 0.25rem 0 0; }
 
 .card, .event {
   background: var(--card);

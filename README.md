@@ -14,7 +14,7 @@ Public feeds are labelled as public. They are not a personalised view of any sub
 - **Current and upcoming maintenance** (30 days ahead by default).
 - Resolved events kept for 24 hours.
 - A disclosure of excluded events and the reason each one was dropped.
-- The newest Cisco security advisories that name a CVE, from the Cisco PSIRT RSS feed. These do not change the overall status.
+- The newest Cisco security advisories that name a CVE, from the Cisco PSIRT RSS feed, kept for 7 days. Check Point product CVEs from the public Security Advisories list, kept for 30 days. Neither list changes the overall status.
 - Times on screen in Europe/London, shown as GMT or BST. Stored timestamps are ISO 8601 UTC.
 
 ## Sources
@@ -34,8 +34,11 @@ Each row is an official feed. The page does not use a CORS proxy. A feed the bro
 | GovWifi card | `https://status.wifi.service.gov.uk/api/v2/summary.json`, then the same Statuspage paths | JSON | Browser and collection job. Label: **GovWifi status**. The status page has no regional data centres, so the UK service is in scope. |
 | Syntura card | `https://api.synturastatus.io/data` | JSON | Browser and collection job. The public page is `https://synturastatus.io/`. Label: **Syntura status**. |
 | Cisco security advisories | `https://sec.cloudapps.cisco.com/security/center/psirtrss20/CiscoSecurityAdvisory.xml` | RSS | Browser and collection job. The list page is `https://sec.cloudapps.cisco.com/security/center/publicationListing.x`. |
+| Check Point security advisories | `https://iapi-services-ucs.checkpoint.com/public/api/support-center-mms/api/securityAdvisories/getAllActive` | JSON | Collection job only. The list page is `https://support.checkpoint.com/security-advisories`. |
 
-Cisco Umbrella status and Cisco PSIRT advisories are different feeds. Umbrella is service health for the configured regions. PSIRT is product security advisories for Cisco as a whole. The advisory list keeps items that name a CVE and drops advance notifications. A new advisory stays on the screen for 7 days (`advisories.cisco.retentionDays`). The page remembers that week in the browser, so a refresh does not clear it when the RSS read fails. The feed timestamp has no timezone, so it is read as UTC and shown in Europe/London.
+Cisco Umbrella status and Cisco PSIRT advisories are different feeds. Umbrella is service health for the configured regions. PSIRT is product security advisories for Cisco as a whole. The advisory list keeps items that name a CVE and drops advance notifications. A new Cisco advisory stays on the screen for 7 days (`advisories.cisco.retentionDays`). The page remembers that week in the browser, so a refresh does not clear it when the RSS read fails. The feed timestamp has no timezone, so it is read as UTC and shown in Europe/London.
+
+Check Point advisories are product CVEs from the public Security Advisories list. The browser is not allowed to read that JSON, so the open page takes it from the published snapshot. Items stay for 30 days (`advisories.checkpoint.retentionDays`). No Check Point account is used. The IPS archive at `advisories.checkpoint.com` and the Check Point Research blog are not this list.
 
 **Reload status data** reads the provider feeds again. It does not stop at the saved snapshot. The collection time in the header is the time of that browser read. A provider that cannot be read keeps its snapshot and is marked stale. The header does not call that a fresh collection of every feed.
 
@@ -131,7 +134,7 @@ Edit `config/providers.json`.
 | Field | Meaning |
 | --- | --- |
 | `dashboardTitle`, `organisation`, `timeZone` | Page identity. The collector stores the time zone; the page formats times in Europe/London. |
-| `refreshMinutes` | How often an open page reads the feeds it can reach. Default 5 minutes. The published snapshot, which Azure uses, is refreshed by the workflow schedule. |
+| `refreshMinutes` | How often an open page reads the feeds it can reach. Default 5 minutes. The published snapshot, which Azure and Check Point advisories use, is refreshed by the workflow schedule. |
 | `maintenanceLookAheadDays` | Upcoming maintenance window. Default 30. In-progress maintenance is kept even if it started earlier. |
 | `recentlyResolvedHours` | How long a resolved or completed event stays on the page. Default 24. |
 | `mockData` | Must stay `false` for the live collector. |
@@ -151,7 +154,7 @@ An event is included when a structured region or component matches an allowed va
 
 `.github/workflows/deploy-without-commit.yml` is the live publisher. It runs on `workflow_dispatch` and at minutes 7, 14, 22, 29, 37, 44, 52 and 59 of each hour. GitHub often never creates runs for a `*/5` schedule, and it can start a scheduled run later than the cron time. It may also pause schedules after 60 days without a repository commit.
 
-The job fetches every provider and deploys the site. It does not commit `data/status.json`. It passes `--publish`, so the saved snapshot gets a new collection time even when the incidents have not changed. **Reload status data** reads the provider feeds in the browser, and the page does the same when it opens and about every 5 minutes after that. Azure’s public RSS feed does not allow browser requests. That card uses the published snapshot. It is not listed as a failed feed. On each refresh the page reads `data/status.json` again and keeps the Azure snapshot when the published copy is newer.
+The job fetches every provider and the Check Point advisory list, then deploys the site. It does not commit `data/status.json`. It passes `--publish`, so the saved snapshot gets a new collection time even when the incidents have not changed. **Reload status data** reads the provider feeds in the browser, and the page does the same when it opens and about every 5 minutes after that. Azure’s public RSS feed does not allow browser requests. That card uses the published snapshot. It is not listed as a failed feed. On each refresh the page reads `data/status.json` again and keeps the Azure snapshot when the published copy is newer. Check Point advisories are read on the same schedule and shown from that snapshot. Cisco advisories are read by the browser on the 5-minute refresh.
 
 `.github/workflows/update-status.yml` is manual. Run it when the copy of `data/status.json` in the repository should be updated. It commits only when the events or provider errors change, so a timestamp by itself does not create a commit. Permission is `contents: write`. One failed provider keeps that provider’s previous events, marks it stale, and lets the others update. The commit identity is `github-actions[bot]`. The workflow does not print secrets.
 
@@ -208,7 +211,8 @@ Account-specific AWS Health is not part of this version. A later EventBridge or 
 | Cloudflare | `https://www.cloudflarestatus.com/api/v2/summary.json` plus the related Statuspage JSON paths | Cloudflare Status API |
 | GovWifi | `https://status.wifi.service.gov.uk/api/v2/summary.json` plus the related Statuspage JSON paths | GovWifi status |
 | Syntura, formerly hSo | `https://api.synturastatus.io/data` | Syntura status |
-| Cisco security advisories | `https://sec.cloudapps.cisco.com/security/center/psirtrss20/CiscoSecurityAdvisory.xml` | Cisco PSIRT RSS. Shown beside the provider cards, not as a status card. |
+| Cisco security advisories | `https://sec.cloudapps.cisco.com/security/center/psirtrss20/CiscoSecurityAdvisory.xml` | Cisco PSIRT RSS. Shown beside the provider cards, not as a status card. Kept for 7 days. |
+| Check Point security advisories | `https://iapi-services-ucs.checkpoint.com/public/api/support-center-mms/api/securityAdvisories/getAllActive` | Check Point product CVEs. Collection job only. Shown in a list under Cisco. Kept for 30 days. |
 
 ## Integrations that need authentication
 
@@ -257,7 +261,7 @@ The tests cover the region rules for all eight providers, retention, the mainten
 - No provider credentials in the site, the config file, or the committed JSON.
 - Provider text is written with `textContent`. The page does not use `innerHTML` for feed content. HTML in summaries is stripped before it is stored.
 - External links use `rel="noopener noreferrer"` and an `http` or `https` URL check.
-- The page sets a Content Security Policy. `connect-src` allows only this site and the official feed hosts: `azure.status.microsoft`, `status.cloud.google.com`, `status.aws.amazon.com`, `ocistatus.oraclecloud.com`, `www.cloudflarestatus.com`, `status.umbrella.cisco.com`, `status.wifi.service.gov.uk`, `api.synturastatus.io` and `sec.cloudapps.cisco.com`. There is no CORS proxy.
+- The page sets a Content Security Policy. `connect-src` allows only this site and the official feed hosts: `azure.status.microsoft`, `status.cloud.google.com`, `status.aws.amazon.com`, `ocistatus.oraclecloud.com`, `www.cloudflarestatus.com`, `status.umbrella.cisco.com`, `status.wifi.service.gov.uk`, `api.synturastatus.io` and `sec.cloudapps.cisco.com`. Check Point advisories are not fetched by the browser. There is no CORS proxy.
 - Collector requests time out after 20 seconds and reject bodies over 8 MB. Malformed JSON and XML fail that provider only.
 - GitHub Actions are pinned to commit SHAs. Workflow permissions are limited to the job.
 

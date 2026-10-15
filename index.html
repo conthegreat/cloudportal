@@ -7,7 +7,7 @@
   <meta name="description" content="Current incidents, degradation and planned maintenance for the configured cloud and network services.">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://azure.status.microsoft https://status.cloud.google.com https://status.aws.amazon.com https://ocistatus.oraclecloud.com https://www.cloudflarestatus.com https://status.umbrella.cisco.com https://status.wifi.service.gov.uk https://api.synturastatus.io https://sec.cloudapps.cisco.com; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="assets/styles.css?v=3">
+  <link rel="stylesheet" href="assets/styles.css?v=5">
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
@@ -41,10 +41,17 @@
         <h2 id="providers-heading">Providers</h2>
         <div id="provider-cards" class="provider-grid"></div>
       </section>
-      <section aria-labelledby="advisories-heading">
-        <h2 id="advisories-heading">Cisco security advisories</h2>
-        <p id="advisory-note" class="section-note">Cisco PSIRT advisories from the last 7 days.</p>
-        <div id="advisories" class="advisory-list"></div>
+      <section class="advisory-column" aria-label="Security advisories">
+        <section class="advisory-group" aria-labelledby="cisco-advisories-heading">
+          <h2 id="cisco-advisories-heading">Cisco</h2>
+          <p id="cisco-advisory-note" class="section-note">Last 7 days</p>
+          <div id="cisco-advisories" class="advisory-list"></div>
+        </section>
+        <section class="advisory-group" aria-labelledby="checkpoint-advisories-heading">
+          <h2 id="checkpoint-advisories-heading">Check Point</h2>
+          <p id="checkpoint-advisory-note" class="section-note">Last 30 days</p>
+          <div id="checkpoint-advisories" class="advisory-list"></div>
+        </section>
       </section>
     </div>
     <section aria-labelledby="incidents-heading">
@@ -76,6 +83,6 @@
   <noscript>
     <p>This dashboard needs JavaScript to read the status file. You can still open the provider status pages: <a href="https://azure.status.microsoft/en-gb/status">Azure</a>, <a href="https://status.cloud.google.com/">Google Cloud</a>, <a href="https://health.aws.amazon.com/health/status">AWS</a>, <a href="https://status.umbrella.cisco.com/">Cisco Umbrella</a>, <a href="https://www.cloudflarestatus.com/">Cloudflare</a>, <a href="https://ocistatus.oraclecloud.com/">Oracle Cloud</a>, <a href="https://status.wifi.service.gov.uk/">GovWifi</a> and <a href="https://synturastatus.io/">Syntura</a>.</p>
   </noscript>
-  <script type="module" src="assets/app.js?v=12"></script>
+  <script type="module" src="assets/app.js?v=14"></script>
 </body>
 </html>

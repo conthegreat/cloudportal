@@ -35,6 +35,7 @@ function materialView(document) {
     }])),
     advisories: (document.advisories || []).map((item) => ({
       id: item.id,
+      source: item.source || 'cisco',
       title: item.title,
       cves: item.cves,
       severity: item.severity,
@@ -44,6 +45,11 @@ function materialView(document) {
       stale: document.advisoryFeed.stale,
       error: document.advisoryFeed.error,
       shownCount: document.advisoryFeed.shownCount
+    } : null,
+    checkpointFeed: document.checkpointFeed ? {
+      stale: document.checkpointFeed.stale,
+      error: document.checkpointFeed.error,
+      shownCount: document.checkpointFeed.shownCount
     } : null
   };
 }

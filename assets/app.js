@@ -1,3 +1,4 @@
+import { retainCheckpointAdvisories } from '../scripts/advisories/checkpoint.js';
 import { retainCiscoAdvisories } from '../scripts/advisories/cisco-psirt.js';
 import { collectStatus } from '../scripts/collect.js';
 import {
@@ -30,6 +31,7 @@ const LETTERS = {
 
 const ADVISORY_STORE = 'cisco-psirt-week';
 const ADVISORY_DAYS = 7;
+const CHECKPOINT_DAYS = 30;
 const state = { mode: 'live', status: null, checkedAt: null, snapshotAt: null, freshness: 'pending' };
 let refreshing = false;
 
@@ -40,8 +42,10 @@ const els = {
   schedule: document.querySelector('#schedule'),
   banners: document.querySelector('#banners'),
   cards: document.querySelector('#provider-cards'),
-  advisories: document.querySelector('#advisories'),
-  advisoryNote: document.querySelector('#advisory-note'),
+  ciscoAdvisories: document.querySelector('#cisco-advisories'),
+  ciscoAdvisoryNote: document.querySelector('#cisco-advisory-note'),
+  checkpointAdvisories: document.querySelector('#checkpoint-advisories'),
+  checkpointAdvisoryNote: document.querySelector('#checkpoint-advisory-note'),
   incidents: document.querySelector('#incidents'),
   maintenance: document.querySelector('#maintenance'),
   resolved: document.querySelector('#resolved'),
@@ -95,7 +99,12 @@ function advisoryChip(severity) {
   return chip(status, label);
 }
 
+function isCheckpointAdvisory(item) {
+  return item?.source === 'checkpoint';
+}
+
 function advisoryArticle(item, zone) {
+  const checkpoint = isCheckpointAdvisory(item);
   const cves = item.cves || [];
   const shown = cves.slice(0, 3).join(', ');
   const extra = cves.length > 3 ? ` +${cves.length - 3} more` : '';
@@ -106,12 +115,14 @@ function advisoryArticle(item, zone) {
       h('span', { class: 'visually-hidden', text: ' (opens in a new tab)' })
     ])
     : document.createTextNode(item.title);
-  return h('article', { class: 'advisory', 'data-severity': item.severity || 'unrated' }, [
+  const meta = checkpoint || !shown ? when : `${shown}${extra} · ${when}`;
+  return h('article', { class: 'advisory', 'data-severity': item.severity || 'unrated', 'data-source': checkpoint ? 'checkpoint' : 'cisco' }, [
     h('div', { class: 'advisory-top' }, [
       h('h3', {}, [title]),
       advisoryChip(item.severity)
     ]),
-    h('p', { class: 'meta', text: `${shown}${extra} · ${when}` })
+    checkpoint && item.summary ? h('p', { class: 'advisory-summary', text: item.summary }) : null,
+    h('p', { class: 'meta', text: meta })
   ]);
 }
 
@@ -137,39 +148,47 @@ function icon(id) {
   return svg;
 }
 
+function renderAdvisoryGroup(container, note, items, zone, days, feed, mock) {
+  if (!container) return;
+  if (note) note.textContent = `Last ${days} days`;
+  clear(container);
+  const sorted = items
+    .slice()
+    .sort((left, right) => String(right.publishedAt || '').localeCompare(String(left.publishedAt || '')));
+  if (sorted.length > 0) {
+    for (const item of sorted) container.append(advisoryArticle(item, zone));
+    return;
+  }
+  if (mock) {
+    container.append(h('p', { class: 'empty', text: 'None in this preview.' }));
+    return;
+  }
+  if (state.freshness === 'pending') return;
+  container.append(h('p', { class: 'empty', text: feed?.stale ? 'Temporarily unavailable.' : 'None in this period.' }));
+}
+
 function renderAdvisories(status, zone) {
-  if (!els.advisories) return;
-  clear(els.advisories);
-  if (status.mock) {
-    if (els.advisoryNote) els.advisoryNote.textContent = 'The mock preview does not load the Cisco advisory feed.';
-    els.advisories.append(h('p', { class: 'empty', text: 'No Cisco CVEs are shown in the mock preview.' }));
-    return;
-  }
-  const feed = status.advisoryFeed;
   const items = Array.isArray(status.advisories) ? status.advisories : [];
-  if (els.advisoryNote) {
-    if (items.length > 0 && feed && !feed.stale) {
-      els.advisoryNote.textContent = `Cisco PSIRT RSS, read ${formatAge(feed.lastSuccess)}. New advisories stay for 7 days.`;
-    } else if (items.length > 0) {
-      els.advisoryNote.textContent = 'Cisco PSIRT RSS. Advisories from the last 7 days stay on this screen.';
-    } else if (state.freshness === 'pending') {
-      els.advisoryNote.textContent = 'Reading the Cisco PSIRT feed…';
-    } else if (feed?.stale) {
-      els.advisoryNote.textContent = 'The Cisco PSIRT feed could not be read just now.';
-    } else {
-      els.advisoryNote.textContent = 'No Cisco CVEs were published in the last 7 days.';
-    }
-  }
-  if (items.length === 0) {
-    const text = state.freshness === 'pending'
-      ? 'Checking the Cisco advisory feed.'
-      : feed?.stale
-        ? 'The Cisco PSIRT feed could not be read just now.'
-        : 'No Cisco CVEs were published in the last 7 days.';
-    els.advisories.append(h('p', { class: 'empty', text }));
-    return;
-  }
-  for (const item of items) els.advisories.append(advisoryArticle(item, zone));
+  const ciscoDays = status.advisoryFeed?.retentionDays || ADVISORY_DAYS;
+  const checkpointDays = status.checkpointFeed?.retentionDays || CHECKPOINT_DAYS;
+  renderAdvisoryGroup(
+    els.ciscoAdvisories,
+    els.ciscoAdvisoryNote,
+    items.filter((item) => !isCheckpointAdvisory(item)),
+    zone,
+    ciscoDays,
+    status.advisoryFeed,
+    status.mock
+  );
+  renderAdvisoryGroup(
+    els.checkpointAdvisories,
+    els.checkpointAdvisoryNote,
+    items.filter(isCheckpointAdvisory),
+    zone,
+    checkpointDays,
+    status.checkpointFeed,
+    status.mock
+  );
 }
 
 function setChecked(text) {
@@ -387,7 +406,7 @@ async function refreshFromProviders() {
     if (published?.generatedAt) state.snapshotAt = published.generatedAt;
     const status = await collectStatus({
       config,
-      previous: withStoredAdvisories(withNewerPublishedProvider(state.status, published, 'azure')),
+      previous: withSnapshotAdvisories(withStoredAdvisories(withNewerPublishedProvider(state.status, published, 'azure')), published),
       env: {}
     });
     rememberAdvisories(status);
@@ -427,9 +446,10 @@ function readAdvisoryStore() {
 
 function rememberAdvisories(status) {
   if (!status || status.mock || !Array.isArray(status.advisories)) return;
-  if (status.advisoryFeed?.stale && status.advisories.length === 0) return;
+  const cisco = status.advisories.filter((item) => !isCheckpointAdvisory(item));
+  if (status.advisoryFeed?.stale && cisco.length === 0) return;
   localStorage.setItem(ADVISORY_STORE, JSON.stringify({
-    advisories: status.advisories,
+    advisories: cisco,
     lastSuccess: status.advisoryFeed?.lastSuccess || null
   }));
 }
@@ -437,22 +457,25 @@ function rememberAdvisories(status) {
 function withStoredAdvisories(status) {
   const stored = readAdvisoryStore();
   const base = status && status.mock !== true ? status : null;
+  const checkpoint = (base?.advisories || []).filter(isCheckpointAdvisory);
   if (!stored && !base?.advisories) return base;
-  const advisories = retainCiscoAdvisories(base?.advisories || [], stored?.advisories || [], {
-    now: new Date(),
-    retentionDays: ADVISORY_DAYS
-  });
+  const cisco = retainCiscoAdvisories(
+    (base?.advisories || []).filter((item) => !isCheckpointAdvisory(item)),
+    stored?.advisories || [],
+    { now: new Date(), retentionDays: ADVISORY_DAYS }
+  );
+  const advisories = [...cisco, ...checkpoint];
   if (!base) {
-    return advisories.length ? {
+    return cisco.length ? {
       mock: false,
-      advisories,
+      advisories: cisco,
       advisoryFeed: {
         sourceLabel: 'Cisco PSIRT',
         lastSuccess: stored?.lastSuccess || null,
         stale: true,
         error: null,
         hasCache: true,
-        shownCount: advisories.length,
+        shownCount: cisco.length,
         retentionDays: ADVISORY_DAYS
       }
     } : null;
@@ -461,15 +484,41 @@ function withStoredAdvisories(status) {
   return {
     ...base,
     advisories,
-    advisoryFeed: base.advisoryFeed || {
+    advisoryFeed: base.advisoryFeed || (cisco.length ? {
       sourceLabel: 'Cisco PSIRT',
       lastSuccess: stored?.lastSuccess || null,
       stale: true,
       error: null,
-      hasCache: advisories.length > 0,
-      shownCount: advisories.length,
+      hasCache: cisco.length > 0,
+      shownCount: cisco.length,
       retentionDays: ADVISORY_DAYS
-    }
+    } : base.advisoryFeed)
+  };
+}
+
+function withSnapshotAdvisories(status, published) {
+  const base = status && status.mock !== true ? status : null;
+  const publishedCheckpoint = (published?.advisories || []).filter(isCheckpointAdvisory);
+  const currentCheckpoint = (base?.advisories || []).filter(isCheckpointAdvisory);
+  if (!publishedCheckpoint.length && !published?.checkpointFeed) return base;
+  const days = Number(published?.checkpointFeed?.retentionDays) > 0
+    ? Number(published.checkpointFeed.retentionDays)
+    : CHECKPOINT_DAYS;
+  const checkpoint = retainCheckpointAdvisories(publishedCheckpoint, currentCheckpoint, {
+    now: new Date(),
+    retentionDays: days
+  });
+  const cisco = (base?.advisories || []).filter((item) => !isCheckpointAdvisory(item));
+  const currentAt = Date.parse(base?.checkpointFeed?.lastSuccess || 0);
+  const publishedAt = Date.parse(published?.checkpointFeed?.lastSuccess || 0);
+  const checkpointFeed = publishedAt > currentAt ? published.checkpointFeed : (base?.checkpointFeed || published?.checkpointFeed || null);
+  if (!base) {
+    return checkpoint.length ? { mock: false, advisories: checkpoint, checkpointFeed } : null;
+  }
+  return {
+    ...base,
+    advisories: [...cisco, ...checkpoint],
+    checkpointFeed: checkpointFeed ? { ...checkpointFeed, shownCount: checkpoint.length } : null
   };
 }
 
